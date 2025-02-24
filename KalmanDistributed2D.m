@@ -191,14 +191,34 @@ if PLOTPos == true
 
     % Plot 3D per il veicolo 1
     figure(2);
+    subplot(1,2,1)
     %t = linspace(0, 10, 1001);             % Tempo da 0 a 10 secondi
-    x1Store = [x1Store(1,:); x1Store(2,:)];             % Posizione X e Y (ad esempio una traiettoria circolare)
-    plot3(t,x1Store(1,:), x1Store(2,:));   % Posizione reale
+    x1_3D = [x1Store(1,:); x1Store(2,:)];   % Posizione X e Y (ad esempio una traiettoria circolare)
+    x1_3D_est = [x1Est(1,:); x1Est(2,:)];
+    plot3(t,x1_3D(1,:), x1_3D(2,:));   % Posizione reale
+    hold on
+    plot3(t,x1_3D_est(1,:), x1_3D_est(2,:));
+    legend('Real','Stimato')
     ylabel('Posizione X');
     zlabel('Posizione Y');
     xlabel('Tempo [s]');
     grid on;
+    hold off
     title('Posizione spaziale 3D del veicolo 1');
+
+    subplot(1,2,2)
+    %t = linspace(0, 10, 1001);             % Tempo da 0 a 10 secondi
+    x2_3D = [x2Store(1,:); x2Store(2,:)];             % Posizione X e Y (ad esempio una traiettoria circolare)
+    x2_3D_est = [x2Est(1,:); x2Est(2,:)];
+    plot3(t,x2_3D(1,:), x2_3D(2,:));   % Posizione reale
+    hold on
+    plot3(t,x2_3D_est(1,:), x2_3D_est(2,:));
+    ylabel('Posizione X');
+    zlabel('Posizione Y');
+    xlabel('Tempo [s]');
+    grid on;
+    title('Posizione spaziale 3D del veicolo 2');
+    
 
 
 

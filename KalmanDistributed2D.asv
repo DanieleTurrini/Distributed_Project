@@ -18,7 +18,7 @@ t = 0:Dt:100; % Intervallo di simulazione
 x1 = rand(2,1); % Posizione iniziale casuale
 % Comando di controllo (accelerazione variabile nel tempo)
 ux1 = 1 + sin(t);
-uy1 =  1 + sin(t/5);
+uy1 = t + sin(t*5);
 u1 = [ux1;uy1];
 
 %% Inizializzazione Veicolo 2
@@ -190,28 +190,27 @@ if PLOTPos == true
 
 
     % Plot 3D per il veicolo 1
-    figure(2), clf, hold on;
-    cords = [x1Store(1,:), x1Store(2,:)];
-    % Posizione spaziale (X, Y) in funzione del tempo per il veicolo 1
-    plot3(cords(1,:), cords(2,:), linspace(0, 10, 1001));  % Posizione reale
-    %plot3(x1Est(1,:), x1Est(2,:), t);     % Posizione stimata
-    xlim([0,100])
-    xlabel('Posizione X');
-    ylabel('Posizione Y');
-    zlabel('Tempo [s]');
-    legend('Posizione Reale', 'Posizione Stimata');
-    title('Posizione spaziale 3D del veicolo 1');   
-    grid on;
-
-    figure(100);
-    t = linspace(0, 10, 1001);             % Tempo da 0 a 10 secondi
-    x1Store = [sin(t); cos(t)];             % Posizione X e Y (ad esempio una traiettoria circolare)
-    plot3(x1Store(1,:), x1Store(2,:), t);   % Posizione reale
-    xlabel('Posizione X');
-    ylabel('Posizione Y');
-    zlabel('Tempo [s]');
+    figure(2);
+    subplot(1,2,1)
+    %t = linspace(0, 10, 1001);             % Tempo da 0 a 10 secondi
+    x1_3D = [x1Store(1,:); x1Store(2,:)];   % Posizione X e Y (ad esempio una traiettoria circolare)
+    x1_3D_pred = [x1]
+    plot3(t,x1_3D(1,:), x1_3D(2,:));   % Posizione reale
+    ylabel('Posizione X');
+    zlabel('Posizione Y');
+    xlabel('Tempo [s]');
     grid on;
     title('Posizione spaziale 3D del veicolo 1');
+    subplot(1,2,2)
+    %t = linspace(0, 10, 1001);             % Tempo da 0 a 10 secondi
+    x2_3D = [x2Store(1,:); x2Store(2,:)];             % Posizione X e Y (ad esempio una traiettoria circolare)
+    plot3(t,x2_3D(1,:), x2_3D(2,:));   % Posizione reale
+    ylabel('Posizione X');
+    zlabel('Posizione Y');
+    xlabel('Tempo [s]');
+    grid on;
+    title('Posizione spaziale 3D del veicolo 2');
+    
 
 
 
