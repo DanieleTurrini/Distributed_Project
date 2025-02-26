@@ -67,6 +67,7 @@ x2GPS = x2Store + randn(2, length(x2Store)) .* sigma_gps2;
 ProbGPS2 = 0.9;
 
 % Errore nelle misure Radar (posizione relativa veicoli)
+mu_radar = 0; % Bias radar
 sigma_radar = 0.1;
 ProbRadar = 0.8;
 
@@ -87,6 +88,12 @@ x2Est = zeros(2, length(t));
 P2 = 100 * eye(2); % Matrice 2×2 
 P2Store = zeros(2, 2, length(t));
 P2PredStore = zeros(2, 2, length(t));
+
+% ---> Distanza Vehicle 1-2 <-------
+x1p2Est = zeros(2, length(t));
+P1p2 = 100 * eye(2);
+P1p2Store = zeros(2,2, length(t));
+P1p2PredStore = zeros(2,2, length(t));
 
 for i = 1:length(t)-1
 
@@ -134,13 +141,65 @@ for i = 1:length(t)-1
     P2Store(:,:,i+1) = P2;  
     P2PredStore(:,:,i+1) = P2pred;
 
+
+    %% Stima Veicolo 1 sapendo posizione 2 e distanza 
+
+    % Predizione dello stato
+    x1p2EstPred = A*x1p2Est(:,i) + B*u1_bar(:,i); % posizione stimata a priori del veicolo 1
+    P1p2pred = A*P1p2*A' + B*sigma_u1^2*B'; % covarianza predetta dell’errore
+    
+    % Misure GPS e Radar
+    pGPS1 = rand(1);
+    pRadar = rand(1);
+    
+    if pGPS1 <= ProbGPS1
+        if pRadar <= ProbRadar
+            % Misura del radar (distanza relativa)
+            d = norm(x2Store(:,i+1) - x1Store(:,i+1)) + randn(1)*sigma_radar + mu_radar;
+            H = [eye(2); -(x2Store(:,i+1) - x1Store(:,i+1))' / d]; % MATRICE OSSERVAZIONE ->identita per gps e termine /distanza per radar
+            z = [x1GPS(:,i+1); d - norm(x2Est(:,i+1))]; % MISURA -> posizione GPS e disranza radar
+            R = diag([sigma_gps1^2, sigma_gps1^2, sigma_radar^2 + trace(P2)]); %La COVARIANZA dell’errore di misura R tiene conto degli errori del GPS e del radar
+        else
+            H = eye(2);
+            z = x1GPS(:,i+1);
+            R = diag([sigma_gps1^2, sigma_gps1^2]);
+        end
+    else
+        if pRadar <= ProbRadar % se solo radar disponibile
+            d = norm(x2Store(:,i+1) - x1Store(:,i+1)) + randn(1)*sigma_radar + mu_radar;
+            H = [-(x2Store(:,i+1) - x1Store(:,i+1))' / d];
+            z = d - norm(x2Est(:,i+1)); % MISURA -> è solo la distanza relativa
+            R = sigma_radar^2 + trace(P2); % COVARIANZA -> data solo dall'errore del radar
+        else
+            continue; % Nessuna misura disponibile
+        end
+    end
+    
+    % Aggiornamento del filtro di Kalman
+    if (pGPS1 <= ProbGPS1) || (pRadar <= ProbRadar) % se almeno una misura è disponibile
+        InnCov = H*P1p2pred*H' + R; % INNOVAZIONE 
+        W = P1p2pred*H'/InnCov;     % GUADAGNO DI KALMAN
+        x1p2Est(:,i+1) = x1p2EstPred + W*(z - H*x1p2EstPred); % aggiorna lo stato stimato
+        P1p2 = (eye(2) - W*H)*P1p2pred; % aggiorna COVARIANZA
+    else
+        % Se nessuna misura è disponibile, lo stato rimane la predizione senza aggiornamenti
+        x1p2Est(:,i+1) = x1p2EstPred;
+        P1p2 = P1p2pred;
+    end
+    
+    % Memorizza la covarianza
+    P1p2Store(:,:,i+1) = P1p2;
+    P1p2PredStore(:,:,i+1) = P1p2pred;
+
+
 end
 
 %% Visualizzazione dei risultati
 PLOTPos = true;
-PLOTCov = false;
-PLOTAutoc = false;
-PLOTHist = false;
+PLOTPos1p2 = true;
+PLOTCov = true;
+PLOTAutoc = true;
+PLOTHist = true;
 
 %% Posizioni
 if PLOTPos == true
@@ -218,10 +277,20 @@ if PLOTPos == true
     xlabel('Tempo [s]');
     grid on;
     title('Posizione spaziale 3D del veicolo 2');
-    
 
+end
 
-
+%% Posizoini 1p2
+if (PLOTPos1p2 == true)
+    figure(10)
+    plot(t, x1Store(1,:)); % Posizione X reale
+    hold on;
+    plot(t, x1p2Est(1,:));   % Posizione X stimata
+    title('Posizione X reale vs stimata per il veicolo 1');
+    xlabel('Tempo [s]');
+    ylabel('Posizione X');
+    legend('x1 Reale', 'x1 Stimato');
+    grid on; 
 end
 
 %% Covarianza
