@@ -121,9 +121,9 @@ end
 % Confronto tra posizioni reali e stimate
 figure(1), clf, hold on;
 plot(t, x1Store, 'b');
-plot(t, x1GPS, 'g');
 plot(t, x1Est, 'r');
-legend('x1 Reale', 'x1 Misurato','x1 Stimato');
+plot(t, x1Est, 'r');
+legend('x1 Reale', 'x1 Stimato');
 xlabel('Tempo [s]');
 ylabel('Posizione [m]');
 
