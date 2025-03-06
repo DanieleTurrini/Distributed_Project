@@ -77,7 +77,7 @@ for iter = 1:n_iter
         end
     end
     
-    pause(0.5);
+    pause(0.01);
 end
 hold off;
 
