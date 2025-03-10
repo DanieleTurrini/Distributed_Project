@@ -4,7 +4,8 @@ clc;
 
 % Define the number of points and grid dimensions
 numPoints = 4;      % Set the number of points you want to generate
-dimgrid = [100 100];   % Define the height of the grid
+dimgrid = [500 500];   % Define the height of the grid
+kp = 20;
 
 points = zeros(numPoints,2);
 
@@ -33,41 +34,60 @@ scatter(points(:,1),points(:,2));
 title('Voronoi Tassellation');
 
 %% Compute Voronoi tessellation using voronoin
-[V, C] = voronoin(points);
+[areas,centroids,vel] = voronoi_function(dimgrid,points,kp);
 
-%% For simplicity, assume that every cell is fully bounded inside the grid.
-% (For unbounded cells, you need to clip the polygon to the grid first.)
-density = 1;  % mass per unit area
-cellMasses = zeros(numPoints, 1);
-
-for i = 1:numPoints
-    cellIdx = C{i};
-    
-    % Check for unbounded cell (index 1 is at infinity)
-    if any(cellIdx==1)
-        fprintf('Cell %d is unbounded; it must be clipped before integration.\n', i);
-        continue;
-    end
-    
-    % Extract the vertices of the cell (assumed in order)
-    xv = V(cellIdx, 1);
-    yv = V(cellIdx, 2);
-    
-    % Compute area using the polyarea function (integration over the polygon)
-    cellArea = polyarea(xv, yv);
-    
-    % Mass is density multiplied by area
-    cellMasses(i) = density * cellArea;
-    
-    % Optionally, plot the cell for visualization
-    hold on;
-    plot([xv; xv(1)], [yv; yv(1)], 'r-', 'LineWidth', 1.5);
+sum_areas = sum(areas);
+for i = 1:length(areas)
+    fprintf('areas%d: %f\n',i,areas(i));
 end
+disp(sum_areas)
+for i = 1:length(areas)
+    fprintf('centroids coordinates %d: [%f,%f]\n',i,centroids(i,1),centroids(i,2));
+end
+disp(sum_areas)
 
-%% Display computed masses
-fprintf('Mass of each Voronoi cell (for bounded cells):\n');
-for i = 1:numPoints
-    if cellMasses(i) > 0
-        fprintf('Cell %d: %.2f\n', i, cellMasses(i));
+%% Simulation 
+
+dt = 0.01;
+T_sim = 500;
+
+trajectories = zeros(numPoints,2,T_sim);
+
+nx = points;
+trajectories(:,:,1) = nx;
+
+% Prepare figure for simulation
+figure(3);
+colors = lines(numPoints);
+hold on;
+axis([0 dimgrid(1) 0 dimgrid(2)]);
+xlabel('X Coordinate');
+ylabel('Y Coordinate');
+title('Lloyd Simulation');
+
+for t = 2:T_sim
+    % Compute Voronoi tessellation and centroids
+    [areas, centroids, vel] = voronoi_function(dimgrid, nx, kp);
+    
+    % Update positions using 2D velocity vectors
+    nx = nx + vel * dt;
+    
+    % Save the updated positions into the trajectories array
+    trajectories(:, :, t) = nx;
+
+    % Clear the figure and replot everything using arrays of points
+    % clf;  % Clear the current figure
+    % hold on;
+    
+    % Plot the trajectory for each drone up to the current time
+    for i = 1:numPoints
+        % Extract the trajectory so far (squeeze the slice into a 2D array)
+        traj = squeeze(trajectories(i, :, 1:t));
+        plot(traj(1, :), traj(2, :), '-', 'Color', colors(i,:), 'LineWidth', 1.5);
+        % Plot the current drone position as a marker
+        plot(nx(i, 1), nx(i, 2), 'o', 'Color', colors(i,:), 'MarkerSize', 8, 'MarkerFaceColor', colors(i,:));
     end
+    
+    drawnow;  % Force MATLAB to update the figure
+    % Optionally add a pause (e.g., pause(0.01)) to slow down the simulation for visualization
 end

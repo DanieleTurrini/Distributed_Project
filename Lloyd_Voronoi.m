@@ -7,8 +7,8 @@ n_iter = 20;            % Numero massimo di iterazioni
 raggio_raggiungimento = 1; % Raggio per considerare l'incendio raggiunto
 
 % Numero fisso di incendi e aerei
-num_incendi = 3;
-num_aerei = 3;
+num_incendi = 5;
+num_aerei = 5;
 
 % Creazione della griglia della mappa
 [X, Y] = meshgrid(1:dim_mappa(1), 1:dim_mappa(2));
