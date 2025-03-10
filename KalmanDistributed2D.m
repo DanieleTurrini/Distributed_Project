@@ -196,10 +196,10 @@ end
 
 %% Visualizzazione dei risultati
 PLOTPos = true;
-PLOTPos1p2 = true;
-PLOTCov = true;
-PLOTAutoc = true;
-PLOTHist = true;
+PLOTPos1p2 = false;
+PLOTCov = false;
+PLOTAutoc = false;
+PLOTHist = false;
 
 %% Posizioni
 if PLOTPos == true
