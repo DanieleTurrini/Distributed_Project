@@ -4,7 +4,7 @@ clc;
 
 % Define the number of points and grid dimensions
 numPoints = 4;      % Set the number of points you want to generate
-dimgrid = [500 500];   % Define the height of the grid
+dimgrid = [1000 1000];   % Define the height of the grid
 kp = 20;
 
 points = zeros(numPoints,2);
@@ -49,7 +49,7 @@ disp(sum_areas)
 %% Simulation 
 
 dt = 0.01;
-T_sim = 500;
+T_sim = 100;
 
 trajectories = zeros(numPoints,2,T_sim);
 
