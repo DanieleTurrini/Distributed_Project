@@ -6,15 +6,15 @@ clc;
 DO_SIMULATION = true;
 
 % Define the number of points and grid dimensions
-numPoints = 4;      % Set the number of points you want to generate
-dimgrid = [500 500];   % Define the height of the grid
+numPoints = 7;      % Set the number of points you want to generate
+dimgrid = [1000 1000];   % Define the height of the grid
 kp = 20;
 
 points = zeros(numPoints,2);
 
 % Generate random positions for each point
-x = rand(numPoints, 1) * 100;   % Random x coordinates
-y = rand(numPoints, 1) * 100;  % Random y coordinates
+x = rand(numPoints, 1) * dimgrid(1);   % Random x coordinates
+y = rand(numPoints, 1) * dimgrid(2);  % Random y coordinates
 
 points = [x,y];
 
@@ -39,9 +39,9 @@ title('Voronoi Tassellation');
 %% Funzione densità per incendi 
 
 % Definizione dei parametri della densità
-x_incendio = 400;
-y_incendio = 400;
-sigma = 30;
+x_incendio = 50;
+y_incendio = 50;
+sigma = 5;
 
 % Creazione della griglia di punti
 [x_m, y_m] = meshgrid(1:dimgrid(1), 1:dimgrid(2));
@@ -103,7 +103,7 @@ if DO_SIMULATION
     for t = 2:T_sim
 
         if t > T_sim/2
-            G = ones(dimgrid(1),dimgrid(2));
+            G = ones(dimgrid(1),dimgrid(2))
         end
         % Compute Voronoi tessellation and centroids
         [areas, centroids, vel] = voronoi_function(dimgrid, nx, kp, G);
