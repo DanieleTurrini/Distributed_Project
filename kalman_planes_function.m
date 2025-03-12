@@ -1,6 +1,6 @@
 function [xEst, P] = kalman_planes_function(xEst, P, u_bar, sigma_u, sigma_gps, GPS, ProbGPS, dt)
     % Prediction step
-    A = eye(2);  % Matrice di transizione di stato (identità per il modello semplice)
+    A = eye(2); % Matrice di transizione di stato (identità per il modello semplice)
     Q = sigma_u^2 * eye(2);  % Covarianza del rumore di processo
 
     xPred = A * xEst + u_bar * dt;  % Stato predetto
