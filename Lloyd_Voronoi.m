@@ -15,20 +15,22 @@ num_aerei = 5;
 voronoi_grid = [X(:), Y(:)]; % Punti della mappa
 
 % Definizione delle posizioni casuali degli incendi e delle loro ampiezze
-incendi = randi([30, 90], num_incendi, 2);
-ampiezze_incendi = randi([5, 20], num_incendi, 1);
-
-% Inizializzazione aerei in punti lontani dagli incendi
-sp_aerei = zeros(num_aerei, 2);
-for i = 1:num_aerei
+incendi = zeros(num_incendi, 2); % Inizializza le posizioni degli incendi
+for i = 1:num_incendi
     while true
-        candidato = randi([0, 10], 1, 2);
-        if min(vecnorm(candidato - incendi, 2, 2)) > 15 % Deve stare lontano da tutti gli incendi
-            sp_aerei(i, :) = candidato;
+        candidato = randi([10, 90], 1, 2); % Posizione casuale
+        % Controlla la distanza dagli incendi già posizionati
+        if i == 1 || all(vecnorm(candidato - incendi(1:i-1, :), 2, 2) >= 20)
+            incendi(i, :) = candidato; % Assegna la posizione se è valida
             break;
         end
     end
 end
+ampiezze_incendi = randi([5, 20], num_incendi, 1);
+
+% Inizializzazione aerei in punti lontani dagli incendi
+sp_aerei = zeros(num_aerei, 2);
+
 
 % Memorizzazione delle traiettorie
 traiettorie_x = zeros(n_iter, num_aerei);
