@@ -17,57 +17,38 @@ function [areas, weigth_centroids, w_vel] = voronoi_function(Map, c_points, kp, 
     indices_cell = reshape(minimum_indices, Map);
 
     % Inizializza le aree, i centroidi e i vettori di velocità
-    areas = zeros(length(c_x), 1);
-    centroids = zeros(length(c_x), 2);
-    vel = zeros(length(c_x), 2);
-    masses = zeros(length(c_x), 1);
+    num_points = length(c_x);
+    areas = zeros(num_points, 1);
+    centroids = zeros(num_points, 2);
+    w_vel = zeros(num_points, 2);
+    masses = zeros(num_points, 1);
+    weigth_centroids = zeros(num_points, 2);
 
-    for i = 1:length(c_x)
+    % Calcola le aree e i centroidi pesati per ogni punto
+    for i = 1:num_points
         % Estrai i punti della regione assegnata al drone i
         region_points = voronoi_grid(minimum_indices == i, :); % Punti della regione
 
         % Calcola l'area della regione
         areas(i) = size(region_points, 1);
 
-        weigth_region_points = zeros(size(region_points,1),2);
-
         if status(i) == 1
             % Calcolo della massa della regione
-            masses(i) = sum(G_fire(sub2ind(size(G_fire), region_points(:,2), region_points(:,1))));
-    
-            % Calcolo del centroide pesato
-            weights = G_fire(sub2ind(size(G_fire), region_points(:,2), region_points(:,1)));  % Estrai i pesi dalla matrice G
-            
-            % Calcola il centroide della regione
-            centroids(i, :) = round(mean(region_points));
-            weigth_centroids(i, :) = sum(region_points .* weights, 1) / masses(i);  % Formula del centroide pesato
-
+            weights = G_fire(sub2ind(size(G_fire), region_points(:,2), region_points(:,1)));
         elseif status(i) == 2
-
             % Calcolo della massa della regione
-            masses(i) = sum(G_water(sub2ind(size(G_water), region_points(:,2), region_points(:,1))));
-    
-            % Calcolo del centroide pesato
-            weights = G_water(sub2ind(size(G_water), region_points(:,2), region_points(:,1)));  % Estrai i pesi dalla matrice G
-            
-            % Calcola il centroide della regione
-            centroids(i, :) = round(mean(region_points));
-            weigth_centroids(i, :) = sum(region_points .* weights, 1) / masses(i);  % Formula del centroide pesato
-
+            weights = G_water(sub2ind(size(G_water), region_points(:,2), region_points(:,1)));
         else
             error('The status variable has an invalid value');
         end
 
+        % Calcolo della massa della regione
+        masses(i) = sum(weights);
+
+        % Calcolo del centroide pesato
+        weigth_centroids(i, :) = sum(region_points .* weights, 1) / masses(i);
+
         % Calcola il vettore di velocità
-        % vel(i, :) = kp * (centroids(i, :) - c_points(i, :));
         w_vel(i, :) = kp * (weigth_centroids(i, :) - c_points(i, :));
-
     end
-
-    % Plot della tassellazione di Voronoi
-    % figure(4)
-    % imagesc(indices_cell);
-    % hold on;
-    % scatter(centroids(:, 1), centroids(:, 2), 60);
-    % scatter(c_points(:, 1), c_points(:, 2), 60, 'x');
 end
