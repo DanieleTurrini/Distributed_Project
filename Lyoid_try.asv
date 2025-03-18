@@ -10,7 +10,7 @@ SAVE_TRAJECTORIES = false;
 vel_max = 800; 
 inc_threshold1 = 30;  % Distance that has to be reach from the fire 1 
 inc_threshold2 = 15;  % Distance that has to be reach from the fire 2
-wat_threshold = 20;   % Distance that has to be reach from the water source to refill
+wat_threshold = 20;
 
 numDrones = 12;      % Set the number of drones
 dimgrid = [500 500];   % Define the dimensions of the grid
@@ -18,7 +18,7 @@ kp = 20;   % Proportional gain for the Lyoid control
 
 points = zeros(numDrones,2);
 
-% Generate random starting positions for each point
+% Generate random positions for each point
 x = rand(numDrones, 1) * 100;   % Random x coordinates
 y = 100 + rand(numDrones, 1) * 100;  % Random y coordinates
 
@@ -30,7 +30,7 @@ scatter(points(:,1),points(:,2));
 axis([0 dimgrid(1) 0 dimgrid(2)]); 
 xlabel('X Coordinate');
 ylabel('Y Coordinate');
-title(sprintf('Initial position of the %d drones', numDrones));
+title(sprintf('Randomly Placed %d Points', numDrones));
 
 % Compute and plot Voronoi tessellation
 [vx, vy] = voronoi(points(:,1), points(:,2));
@@ -42,15 +42,14 @@ axis([0 dimgrid(1) 0 dimgrid(2)]);
 scatter(points(:,1),points(:,2));
 title('Voronoi Tassellation');
 
-%% Density function for fires
+%% Funzione densità per incendi 
 
-% Fires Positions
+% Definizione dei parametri della densità
 x_fire1 = 400;
 y_fire1 = 400;
 x_fire2 = 450;
 y_fire2 = 50;
 
-% Water Positions
 x_water = 50;
 y_water = 50;
 
@@ -58,7 +57,6 @@ pos_fire1 = [x_fire1, y_fire1];
 pos_fire2 = [x_fire2, y_fire2];
 pos_water = [x_water, y_water];
 
-% Standard deviations of fires and water source
 sigma_fire1 = 30;
 sigma_fire2 = 15;
 sigma_water = 20;
@@ -70,6 +68,12 @@ sigma_water = 20;
 G_fire = exp(-(((x_m - x_fire1).^2) / (2 * sigma_fire1^2) + ((y_m - y_fire1).^2) / (2 * sigma_fire1^2))) + exp(-(((x_m - x_fire2).^2) / (2 * sigma_fire2^2) + ((y_m - y_fire2).^2) / (2 * sigma_fire2^2)));
 G_water = exp(-(((x_m - x_water).^2) / (2 * sigma_water^2) + ((y_m - y_water).^2) / (2 * sigma_water^2)));
 
+% Visualizzazione della matrice
+imagesc(G_fire);
+colormap jet;
+colorbar;
+title('Funzione densità: Incendi');
+
 % Visualizzazione in 3D
 figure(3);
 surf(x_m, y_m, G_fire);
@@ -79,19 +83,7 @@ colorbar;
 xlabel('X');
 ylabel('Y');
 zlabel('Densità');
-title('Funzione densità Incendi');
-drawnow;
-hold off;
-
-figure(4);
-surf(x_m, y_m, G_water);
-shading interp; % Per rendere la superficie più liscia
-colormap jet;
-colorbar;
-xlabel('X');
-ylabel('Y');
-zlabel('Densità');
-title('Funzione densità Sorgente Acqua');
+title('Funzione densità: Incendi');
 drawnow;
 hold off;
 

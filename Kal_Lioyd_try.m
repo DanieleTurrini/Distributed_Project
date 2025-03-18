@@ -439,6 +439,4 @@ if PLOT_TRAJECTORIES_COMPARISON
         hold off;
     end
 
-
-
 end
