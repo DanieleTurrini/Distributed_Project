@@ -16,7 +16,7 @@ inc_threshold2 = 40;
 wat_threshold = 20;
 
 % Define the number of points and grid dimensions
-numPoints = 3;      % Set the number of points you want to generate
+numPoints = 7;      % Set the number of points you want to generate
 dimgrid = [500 500];   % Define the height of the grid
 kp = 100;
 
@@ -94,6 +94,7 @@ xlabel('X');
 ylabel('Y');
 zlabel('Densità');
 title('Funzione densità: Incendi');
+view(3); % Vista in 3D
 drawnow;
 hold off;
 
@@ -118,14 +119,10 @@ end
 %% Uncertanties for Kalman Filter
 % Gps
 ProbGPS = 0.8 + (0.95 - 0.8) * rand(numPoints, 1);
-<<<<<<< HEAD
-sigma_gps = 20;
-=======
 sigma_gps = 3;
->>>>>>> 160b67410d9fe04700f6e34ec5cbc0ad2a67f140
 
 % Control input
-sigma_u = 10;
+sigma_u = 0.5;
 
 %% Initialization Kalman Filter
 nx_Est = zeros(numPoints, 2);
@@ -152,14 +149,6 @@ trajectories_GPS(:,:,1) = nx_Est;
 
 % Colors for plotting
 colors = lines(numPoints);
-
-figure(4);
-clf;
-axis([0 dimgrid(1) 0 dimgrid(2)]);
-xlabel('X Coordinate');
-ylabel('Y Coordinate');
-title('Lloyd Simulation Real');
-hold on;
 
 
 if DO_SIMULATION
@@ -260,25 +249,6 @@ if DO_SIMULATION
         end
 
         %% PLOTS
-<<<<<<< HEAD
-        % Real Voronoi
-        % figure(4);
-        % clf;
-        % axis([0 dimgrid(1) 0 dimgrid(2)]);
-        % xlabel('X Coordinate');
-        % ylabel('Y Coordinate');
-        % title('Lloyd Simulation Real');
-        % hold on;
-        
-
-        cla;
-        % Plot the trajectory for each drone up to the current time
-        for i = 1:numPoints
-            if PLOT_TRAJECTORIES
-                % Extract the trajectory so far (squeeze the slice into a 2D array)
-                traj = squeeze(trajectories(i, :, 1:t));
-                plot(traj(1, :), traj(2, :), '-', 'Color', colors(i,:), 'LineWidth', 1.5);
-=======
         if PLOT_REAL_PATH 
             % Real Voronoi
             figure(4);
@@ -301,7 +271,6 @@ if DO_SIMULATION
                 % Plot the current drone position as a marker
                 plot(nx(i, 1), nx(i, 2), 'o', 'Color', colors(i,:), 'MarkerSize', 8, 'MarkerFaceColor', colors(i,:));
                 voronoi(nx(:,1),nx(:,2));
->>>>>>> 160b67410d9fe04700f6e34ec5cbc0ad2a67f140
             end
             if (Ampl_inc(1) > 0 && Ampl_inc(2) > 0)
                 plot(x_fire1,y_fire1,'x','Color', 'r', 'MarkerSize', sigma_fire1*Ampl_inc(1)+0.05)
@@ -311,25 +280,15 @@ if DO_SIMULATION
 
             drawnow;  % Force MATLAB to update the figure
         end
-<<<<<<< HEAD
-        
-        plot(x_fire1,y_fire1,'x','Color', 'r', 'MarkerSize', sigma_fire1)
-        plot(x_fire2,y_fire2,'x','Color', 'r', 'MarkerSize', sigma_fire2)
-        plot(x_water,y_water,'o','Color', 'b', 'MarkerSize', sigma_water)
-
-        % drawnow;  % Force MATLAB to update the figure
-
-=======
->>>>>>> 160b67410d9fe04700f6e34ec5cbc0ad2a67f140
    
-        % % Estimated Voronoi
-        % figure(5);
-        % clf;
-        % axis([0 dimgrid(1) 0 dimgrid(2)]);
-        % xlabel('X Coordinate');
-        % ylabel('Y Coordinate');
-        % title('Lloyd Simulation Estimated');
-        % hold on;
+        % Estimated Voronoi
+        figure(5);
+        clf;
+        axis([0 dimgrid(1) 0 dimgrid(2)]);
+        xlabel('X Coordinate');
+        ylabel('Y Coordinate');
+        title('Lloyd Simulation Estimated');
+        hold on;
 
         % Plot the trajectory for each drone up to the current time
         for i = 1:numPoints
@@ -355,8 +314,6 @@ if DO_SIMULATION
         plot(x_fire2,y_fire2,'x','Color', 'r', 'MarkerSize', sigma_fire2*Ampl_inc(2)+0.05)
 
         plot(x_water,y_water,'o','Color', 'b', 'MarkerSize', sigma_water)
-
-        drawnow;
 
         % Optionally add a pause (e.g., pause(0.01)) to slow down the simulation for visualization
         if A_prev(1) ~= Ampl_inc(2) || A_prev(2) ~= Ampl_inc(2)
@@ -438,5 +395,7 @@ if PLOT_TRAJECTORIES_COMPARISON
         legend('GPS', 'Estimated', 'Real');
         hold off;
     end
+
+
 
 end
