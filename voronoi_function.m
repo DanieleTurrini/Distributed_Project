@@ -1,4 +1,5 @@
 function [areas, weigth_centroids, w_vel] = voronoi_function(Map, c_points, kp, G_fire, G_water, status)
+    
     % Crea una griglia di punti con le dimensioni specificate da Map
     [X, Y] = meshgrid(1:Map(1), 1:Map(2));
     voronoi_grid = [X(:), Y(:)];

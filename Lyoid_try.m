@@ -11,8 +11,9 @@ vel_max = 800;
 inc_threshold1 = 30;  % Distance that has to be reach from the fire 1 
 inc_threshold2 = 15;  % Distance that has to be reach from the fire 2
 wat_threshold = 20;   % Distance that has to be reach from the water source to refill
+refill_time = 20;
 
-numDrones = 12;      % Set the number of drones
+numDrones = 7;      % Set the number of drones
 dimgrid = [500 500];   % Define the dimensions of the grid
 kp = 20;   % Proportional gain for the Lyoid control 
 
@@ -124,7 +125,7 @@ nx = points;
 trajectories(:,:,1) = nx;
 
 % Prepare figure for simulation
-figure(4);
+figure(5);
 colors = lines(numDrones);
 hold on;
 axis([0 dimgrid(1) 0 dimgrid(2)]);
@@ -133,8 +134,15 @@ ylabel('Y Coordinate');
 title('Lloyd Simulation');
 
 if DO_SIMULATION
-    wait_counter = - ones(numDrones,1);
-    count = ones(numDrones,1);
+    wait_counter = -ones(numDrones,1);
+    count = -ones(numDrones,1);
+
+    for i = 1:numDrones
+        if count(i) == 0
+            count(i) = -1;
+            wait_counter(i) = -1;
+        end
+    end
 
     for t = 2:T_sim
 
@@ -148,8 +156,9 @@ if DO_SIMULATION
             end
             if dist_wat(i) <= wat_threshold 
                 status(i) = 1;
-                if wait_counter(i) == -1
-                    wait_counter(i) = 10; % Imposta il contatore a 10 time step
+                if wait_counter(i) == -1 && count(i) == -1
+                    wait_counter(i) = refill_time; % time needed for the refill
+                    count(i) = 5;
                 end
             end
         end
@@ -160,7 +169,17 @@ if DO_SIMULATION
         % Impose a maximum velocity
         vel = sign(vel) .* min(abs(vel), vel_max);
 
-        % r
+        for i = 1:numDrones
+            if wait_counter(i) > 0
+                vel(i,:) = [0,0];
+                wait_counter(i) = wait_counter(i) - 1;
+            elseif count(i) == 0
+                count(i) = -1;
+                wait_counter(i) = -1;
+            elseif wait_counter(i) == 0
+                count(i) = count(i) - 1;
+            end
+        end
 
         % Update positions using 2D velocity vectors
         nx = nx + vel * dt;
