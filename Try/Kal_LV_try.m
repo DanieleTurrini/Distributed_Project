@@ -23,6 +23,7 @@ dev_std_gps = 0.0001; % Deviazione standard del GPS
 
 % incertezza controllo 
 dev_std_control = 0.0001; % Deviazione standard del controllo
+
 %% Creazione dei droni
 % Punti iniziali
 punti_iniziali = rand(n_droni, 2) * 100; % Posizioni casuali in un'area 100x100
@@ -41,7 +42,7 @@ var_gps = dev_std_gps^2;
 
 stima_pos_sensorFusion = zeros(n_droni, 2);
 for i = 1:n_droni
-    var_trilat = droni(i).inc_trilat ^2;
+    var_trilat = droni(i).inc_trilat^2;
     % Pesi basati sull'inverso della varianza
     w_gps = 1 / var_gps;
     w_radar = 1 / var_trilat;

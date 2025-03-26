@@ -1,0 +1,94 @@
+function [areas, weigth_centroids, vel] = voronoi_function_plane(Map, stati, Kp, Ka, Ke, G_fire, G_water, status)
+    
+    % Crea una griglia di punti con le dimensioni specificate da Map
+    [X, Y] = meshgrid(1:Map(1), 1:Map(2));
+    voronoi_grid = [X(:), Y(:)];
+
+    % Estrai le coordinate x e y dei punti iniziali
+    c_x = stati(:, 1:2);
+    c_y = stati(:, 1:2);
+
+    % Calcola le distanze tra i punti iniziali e ciascun punto sulla griglia
+    distances = pdist2(voronoi_grid, stati(:,1:2));
+
+    % Trova l'indice del punto iniziale più vicino per ciascun punto sulla griglia
+    [~, minimum_indices] = min(distances, [], 2);
+
+    % Assegna l'indice a ciascun punto sulla griglia
+    indices_cell = reshape(minimum_indices, Map);
+
+    % Inizializza le aree, i centroidi e i vettori di velocità
+    numUAV = length(c_x);
+    areas = zeros(numUAV, 1);
+    vel = zeros(numUAV, 2);
+    masses = zeros(numUAV, 1);
+    weigth_centroids = zeros(numUAV, 2);
+    distances = zeros(numUAV,1);
+    angle_to_goal = zeros(numUAV,1);
+    angle_error = zeros(numUAV,1);
+    v_lin = zeros(numUAV,1);
+    w_ang = zeros(numUAV,1);
+    sign_angle = zeros(numUAV,1);
+
+    % Calcola le aree e i centroidi pesati per ogni punto
+    for i = 1:numUAV
+
+        % Estrai i punti della regione assegnata al drone i
+        region_points = voronoi_grid(minimum_indices == i, :); % Punti della regione
+
+        % Calcola l'area della regione
+        areas(i) = size(region_points, 1);
+
+        if status(i) == 1
+            % Calcolo della massa della regione
+            weights = G_fire(sub2ind(size(G_fire), region_points(:,2), region_points(:,1)));
+        elseif status(i) == 2
+            % Calcolo della massa della regione
+            weights = G_water(sub2ind(size(G_water), region_points(:,2), region_points(:,1)));
+        else
+            error('The status variable has an invalid value');
+        end
+
+        % Calcolo della massa della regione
+        masses(i) = sum(weights);
+
+        % Calcolo del centroide pesato
+        weigth_centroids(i, :) = sum(region_points .* weights, 1) / masses(i);
+        
+        % Calcolo della distanza 
+        distances(i,:) = norm(weigth_centroids(i, :) - stati(i,1:2));
+
+        % Angolo dal centroid 
+        angle_to_goal(i) = atan2(weigth_centroids(i, 2) - stati(i,2), ...
+                                   weigth_centroids(i, 1) - stati(i,1));
+        
+        % Angolo di errore
+        angle_error(i) = angle_to_goal(i) - stati(i,3); 
+        angle_error(i) = wrapToPi(angle_error(i));
+        
+        % Segno dell'angolo
+        if angle_error >= 0
+            sign_angle(i,1) = 1;
+        elseif angle_error < 0
+            sign_angle(i,1) = -1;
+        end
+        
+        % Velocità lineare
+        v_lin(i, 1) = Kp * distances(i,1);
+
+        
+
+        % Velocità angolare 
+
+        if(abs(angle_error) <= 0.1 ){
+            k_e = 0;
+            }elseif{
+            k_e = 0.8;
+        }
+
+        w_ang(i,1) = Ka * (angle_error(i,1) + sign_angle * atan2(distances(i,:) / v_lin(i, 1)));
+
+        % Calcola il vettore di velocità
+        vel(i, :) = [v_lin(i,1), w_ang(i,1)];
+    end
+end
