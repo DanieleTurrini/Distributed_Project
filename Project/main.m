@@ -8,7 +8,7 @@ DO_SIMULATION = true;
 PLOT_DENSITY_FUNCTIONS = true;
 
 % Vehicles Parameters 
-vel_lin_max = 300; 
+vel_lin_max = 100; 
 vel_ang_max = 20; 
 dimension = 3;  % Dimension of the UAV
 numUAV = 5;
@@ -38,9 +38,9 @@ A = [1, 0, 0, 0;
 
 % Control Matrix
 B = @(theta,dt) dt * [cos(theta), 0, 0;
-                   sin(theta), 0, 0;
-                            0, 1, 0;
-                            0, 0, 1];
+                      sin(theta), 0, 0;
+                               0, 1, 0;
+                               0, 0, 1];
 
 % Map Parameters
 dimgrid = [500 500 500];   % Define the dimensions of the grid
@@ -89,11 +89,14 @@ xlabel('X Coordinate');
 ylabel('Y Coordinate');
 zlabel('Z Coordinate');
 title('Simulation');
+view(3);
 
 if DO_SIMULATION
-
+    
+    count = 0;
     for t = 1:dt:T_sim
         
+        count = count+1;
         % Compute the distances from fires and water source for each drone 
         dist_inc1 = pdist2(pos_fire1, states(:,1:2));
         dist_inc2 = pdist2(pos_fire2, states(:,1:2));
@@ -113,12 +116,30 @@ if DO_SIMULATION
         
         % Impose a maximum velocity
         vel(:,1) = sign(vel(:,1)) .* min(abs(vel(:,1)), vel_lin_max);
-        vel(:,3) = sign(vel(:,2)) .* min(abs(vel(:,2)), vel_ang_max);
+        vel(:,3) = sign(vel(:,3)) .* min(abs(vel(:,3)), vel_ang_max);
 
         for k = 1:numUAV
             states(k,:) = compute_dynamics(A,B,states(k,:),vel(k,:),dt);
-            trajectories(k,:,t) = states(k,:);
+            trajectories(k,:,count) = states(k,:);
         end
+
+        cla;
+        
+        for i = 1:numUAV
+            
+            % Plot the current drone position as a marker
+            plot3(states(i,1),states(i,2),states(i,3));
+            
+            drawUnicycle(states(i,1),states(i,2),states(i,4));
+
+        end
+        voronoi(states(:,1),states(:,2));
+
+        plot3(x_fire1,y_fire1,0,'x','Color', 'r', 'MarkerSize', sigma_fire1)
+        plot3(x_fire2,y_fire2,0,'x','Color', 'r', 'MarkerSize', sigma_fire2)
+        plot3(x_water,y_water,0,'o','Color', 'b', 'MarkerSize', sigma_water)
+
+        drawnow;  % Force MATLAB to update the figure
 
     end
 
