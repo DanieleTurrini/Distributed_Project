@@ -80,9 +80,9 @@ for k = 1:Ttot
     P_pred = A_k * P * A_k' + G_k * Q * G_k';
 
     % EKF - Fase di Aggiornamento
-    K = P_pred * H' / (H * P_pred * H' + R);
-    x_est = x_pred + K * (z - H * x_pred);
-    P = (eye(3) - K * H) * P_pred;
+    W = P_pred * H' / (H * P_pred * H' + R);
+    x_est = x_pred + W * (z - H * x_pred);
+    P = (eye(3) - W * H) * P_pred;
 
     % Salvataggio dati per il grafico
     x_real(k, :) = state';
