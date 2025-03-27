@@ -64,8 +64,7 @@ J_A = @(control, theta, deltat) [1, 0, 0, -control(1) * sin(theta) * deltat;
 
 
 % Matrix of the propagation of the process noise for (x,y,z,theta) 4x4
-% We considered the niose as white and related to the uncertanty in the
-% control (is our uncertanty in the model)
+% We considered the nose as withe
 G = @(theta, deltat) [cos(theta) * deltat,0,0;
               sin(theta) * deltat,0,0;
               0,deltat,0;
