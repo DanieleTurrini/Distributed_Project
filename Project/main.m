@@ -15,7 +15,7 @@ PLOT_DENSITY_FUNCTIONS = true;
 vel_lin_max = 100; 
 vel_ang_max = 20; 
 dimension = 3;  % Dimension of the UAV
-numUAV = 5;
+numUAV = 6;
 Kp = 50;   % Proportional gain for the linear velocity  
 Ka = 15;   % Proportional gain for the angular velocity 
 Ke = 10;   % Additional gain for the angular velocity 
@@ -33,13 +33,13 @@ objective = ones(numUAV,1);     % - objective = 1 : the UAV is filled with
                                 % - objective = 2 : the UAV is empty and is
                                 % going to refill
                                 % (we assume every one empty at the beginning)
-
+objective_est = ones(numUAV,1);
 
 % Dynamicc
-fun = @(x, y,z, theta, control ) [x + control(1) * cos(theta) * dT;  
-                                  y + control(1) * sin(theta) * dT;  
-                                  theta + control(2) * dT];
-
+fun = @(state, control, deltat) [state(1) + control(1) * cos(state(4)) * deltat, ...
+                                 state(2) + control(1) * sin(state(4)) * deltat, ...
+                                 state(3) + control(2) * deltat, ...
+                                 state(4) + control(2) * deltat];
 %{
  
 % State Transition Matrix
@@ -57,16 +57,16 @@ B = @(theta,dt) dt * [cos(theta), 0, 0;
 
 %% Kalman Filter Parameters
 % Jacobian of the state model
-J_A = @(vel, theta) [1, 0, -vel(1) * sin(theta) * dt, 0;
-                            0, 1, vel(2) * cos(theta) * dt, 0;
-                            0, 0, vel(3), 0;
+J_A = @(control, theta, deltat) [1, 0, -control(1) * sin(theta) * deltat, 0;
+                            0, 1, control(2) * cos(theta) * deltat, 0;
+                            0, 0, control(3), 0;
                             0, 0, 0, 1];
 
 % Matrix of the propagation of the process noise for (x,y,z,theta) 4x4
-G = @(theta) [cos(theta) * dt,0,0;
-              sin(theta) * dt,0,0;
-              0,dt,0;
-              0,0,dt];
+G = @(theta, deltat) [cos(theta) * deltat,0,0;
+              sin(theta) * deltat,0,0;
+              0,deltat,0;
+              0,0,deltat];
 
 % Covariance of the process noise
 std_u = [0.1, 0.1, 0.1]; % Uncertainty on the velocity (tang , z) and angular velocity
@@ -75,7 +75,8 @@ Q = diag(std_u.^2);
 % Measurement Parameters
 std_gps = 0.1; % Standard deviation of the GPS
 std_gyro = 0.05; % Standard deviation of the gyroscope
-R = diag([std_gps^2, std_gps^2, std_gyro^2]); % Covariance of the measurement noise
+std_ultrasonic = 0.1; % Standard deviation of the ultrasonic sensor
+R = diag([std_gps^2, std_gps^2, std_ultrasonic^2, std_gyro^2]); % Covariance of the measurement noise
 
 % Initial state (x,y,z,theta)
 states_est = (states' + [std_gps * randn(2, numUAV); zeros(1, numUAV); std_gyro * randn(1, numUAV)])';
@@ -124,18 +125,9 @@ wat_threshold = sigma_water;   % Distance that has to be reach from the water so
 G_fligt = create_flight_surface(dimgrid,scenario);
 
 trajectories = zeros(numUAV, 4, T_sim/dt);
+trajectories_est = zeros(numUAV, 4, T_sim/dt);
 
-% Prepare figure for simulation
-figure(3);
-colors = lines(numUAV);
-hold on;
-axis([0 dimgrid(1) 0 dimgrid(2) 0 dimgrid(3)]);
-xlabel('X Coordinate');
-ylabel('Y Coordinate');
-zlabel('Z Coordinate');
-title('Simulation');
-view(3);
-grid on;
+
 
 %% Simulation
 if DO_SIMULATION
@@ -145,17 +137,43 @@ if DO_SIMULATION
 
         count = count+1;
 
-        % Extended Kalman Filter
-        measure = states' + [std_gps * randn(2, numUAV); zeros(1, numUAV); std_gyro * randn(1, numUAV)];
-        [states_est, P] = ExtendedKalmanFilter_function(states_est, z, J_A, B, Q, H, R, P, dt);
 
-
-        [states, trajectories, objective] = modelSimulation_function(numUAV, dimgrid, states, objective, ...
+        % Model Simulation - REAL
+        [control, objective] = modelSimulation_function(numUAV, dimgrid, states, objective, ...
             pos_fire1, pos_fire2, pos_water, inc_threshold1, inc_threshold2, wat_threshold, ...
-            Kp, Ka, Ke, G_fire, G_water, G_fligt, vel_lin_max, vel_ang_max, A, B, dt, trajectories, count);
+            Kp, Ka, Ke, G_fire, G_water, G_fligt, vel_lin_max, vel_ang_max);
+        
+        for k = 1:numUAV
+            states(k,:) = fun(states(k,:), control(k,:), dt);
+            trajectories(k,:,count) = states(k,:);
+        end
 
-        cla;
+        % Model Simulation - ESTIMATED
+        [control_est, objective_est] = modelSimulation_function(numUAV, dimgrid, states_est, objective_est, ...
+            pos_fire1, pos_fire2, pos_water, inc_threshold1, inc_threshold2, wat_threshold, ...
+            Kp, Ka, Ke, G_fire, G_water, G_fligt, vel_lin_max, vel_ang_max);
+        
+        % Extended Kalman Filter
+        measure = (states' + [std_gps * randn(2, numUAV); zeros(1, numUAV); std_gyro * randn(1, numUAV)])';
+        [states_est, P] = ExtendedKalmanFilter_function(states_est, measure, control_est, J_A, G, fun, Q, H, R, P, dt);
 
+        
+        for k = 1:numUAV
+            trajectories_est(k,:,count) = states_est(k,:);
+        end
+
+        %% Plots
+        % real        
+        figure(3);clf
+        colors = lines(numUAV);
+        hold on;
+        axis([0 dimgrid(1) 0 dimgrid(2) 0 dimgrid(3)]);
+        xlabel('X Coordinate');
+        ylabel('Y Coordinate');
+        zlabel('Z Coordinate');
+        title('Simulation');
+        view(3);
+        grid on;
 
 
         for i = 1:numUAV
@@ -182,6 +200,9 @@ if DO_SIMULATION
         plot3(x_circle, y_circle, z_circle, 'b', 'LineWidth', 2);
 
         drawnow;  % Force MATLAB to update the figure
+
+        % estimated
+
 
     end
 

@@ -1,7 +1,7 @@
 % filepath: c:\Users\jackb\Desktop\Distributed\Distributed_Project\Project\modelSimulation_function.m
-function [states, trajectories, objective] = modelSimulation_function(numUAV, dimgrid, states, objective, ...
+function [vel, objective] = modelSimulation_function(numUAV, dimgrid, states, objective, ...
     pos_fire1, pos_fire2, pos_water, inc_threshold1, inc_threshold2, wat_threshold, ...
-    Kp, Ka, Ke, G_fire, G_water, G_fligt, vel_lin_max, vel_ang_max, A, B, dt, trajectories, count)
+    Kp, Ka, Ke, G_fire, G_water, G_fligt, vel_lin_max, vel_ang_max)
     
 %{
 %%%% INPUT PARAMETERS:
@@ -64,10 +64,14 @@ function [states, trajectories, objective] = modelSimulation_function(numUAV, di
     vel(:,3) = sign(vel(:,3)) .* min(abs(vel(:,3)), vel_ang_max); % Limit angular velocity
 
     % Update states and trajectories
-    for k = 1:numUAV
+
+%{
+     for k = 1:numUAV
         % Update the state of each drone using the dynamics model
         states(k,:) = compute_dynamics(A, B, states(k,:), vel(k,:), dt);
         % Store the updated state in the trajectories array
         trajectories(k,:,count) = states(k,:);
-    end
+    end 
+%}
+
 end
