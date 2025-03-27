@@ -3,11 +3,15 @@ close all;
 clc;
 
 %% Parameters
+% Simulation Parameters 
+dt = 0.01;
+T_sim = 100;
+scenario = 1;
 
-DO_SIMULATION = false;
+DO_SIMULATION = true;
 PLOT_DENSITY_FUNCTIONS = true;
 
-% Vehicles Parameters 
+%% Vehicles Parameters 
 vel_lin_max = 100; 
 vel_ang_max = 20; 
 dimension = 3;  % Dimension of the UAV
@@ -30,6 +34,14 @@ objective = ones(numUAV,1);     % - objective = 1 : the UAV is filled with
                                 % going to refill
                                 % (we assume every one empty at the beginning)
 
+
+% Dynamicc
+fun = @(x, y,z, theta, control ) [x + control(1) * cos(theta) * dT;  
+                                  y + control(1) * sin(theta) * dT;  
+                                  theta + control(2) * dT];
+
+%{
+ 
 % State Transition Matrix
 A = [1, 0, 0, 0;
      0, 1, 0, 0;
@@ -40,13 +52,47 @@ A = [1, 0, 0, 0;
 B = @(theta,dt) dt * [cos(theta), 0, 0;
                       sin(theta), 0, 0;
                                0, 1, 0;
-                               0, 0, 1];
+                               0, 0, 1]; 
+%}
+
+%% Kalman Filter Parameters
+% Jacobian of the state model
+J_A = @(vel, theta) [1, 0, -vel(1) * sin(theta) * dt, 0;
+                            0, 1, vel(2) * cos(theta) * dt, 0;
+                            0, 0, vel(3), 0;
+                            0, 0, 0, 1];
+
+% Matrix of the propagation of the process noise for (x,y,z,theta) 4x4
+G = @(theta) [cos(theta) * dt,0,0;
+              sin(theta) * dt,0,0;
+              0,dt,0;
+              0,0,dt];
+
+% Covariance of the process noise
+std_u = [0.1, 0.1, 0.1]; % Uncertainty on the velocity (tang , z) and angular velocity
+Q = diag(std_u.^2);
+
+% Measurement Parameters
+std_gps = 0.1; % Standard deviation of the GPS
+std_gyro = 0.05; % Standard deviation of the gyroscope
+R = diag([std_gps^2, std_gps^2, std_gyro^2]); % Covariance of the measurement noise
+
+% Initial state (x,y,z,theta)
+states_est = (states' + [std_gps * randn(2, numUAV); zeros(1, numUAV); std_gyro * randn(1, numUAV)])';
+
+% Observation matrix (H)
+H = [1,0,0,0;
+     0,1,0,0;
+     0,0,1,0;
+     0,0,0,dt]; % ( me measure theta with a gyroscope)
+
+% Covariance matrix of the initial estimate
+P = eye(4) * 100; % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 % Map Parameters
 dimgrid = [500 500 500];   % Define the dimensions of the grid
 
-% Fires Parameters
-
+%% Fires Parameters
 % Fires Positions
 x_fire1 = 400;
 y_fire1 = 400;
@@ -59,24 +105,20 @@ sigma_fire1 = 15;   % Standard deviation of the first fire
                     % (correspond to the extention of the fire)
 sigma_fire2 = 15;   % Standard deviation of the second fire
                     % (correspond to the extention of the fire)
-inc_threshold1 = 15;  % Distance that has to be reach from the fire 1 
-inc_threshold2 = 15;  % Distance that has to be reach from the fire 2
+inc_threshold1 = sigma_fire1;  % Distance that has to be reach from the fire 1 
+inc_threshold2 = sigma_fire2;  % Distance that has to be reach from the fire 2
 
-% Water Parameters
-
+%% Water Parameters
 % Water Positions
 x_water = 50;
 y_water = 50;
 pos_water = [x_water, y_water];
 
 sigma_water = 60;
-wat_threshold = 60;   % Distance that has to be reach from the water source to refill
+wat_threshold = sigma_water;   % Distance that has to be reach from the water source to refill
 
-% Simulation Parameters 
-dt = 0.01;
-T_sim = 100;
-scenario = 1;
 
+% Density Functions for the fires and the water
 [G_fire,G_water] = objective_density_functions(dimgrid, pos_fire1,pos_fire2,pos_water,sigma_fire1,sigma_fire2,sigma_water,PLOT_DENSITY_FUNCTIONS);
 
 G_fligt = create_flight_surface(dimgrid,scenario);
@@ -93,41 +135,29 @@ ylabel('Y Coordinate');
 zlabel('Z Coordinate');
 title('Simulation');
 view(3);
+grid on;
 
+%% Simulation
 if DO_SIMULATION
     
     count = 0;
     for t = 1:dt:T_sim
-        
+
         count = count+1;
-        % Compute the distances from fires and water source for each drone 
-        dist_inc1 = pdist2(pos_fire1, states(:,1:2));
-        dist_inc2 = pdist2(pos_fire2, states(:,1:2));
-        dist_wat = pdist2(pos_water, states(:,1:2));
-        
-        % Verify if the wanted distance from the target is reached
-        for i= 1:numUAV
-            if(dist_inc1(i) <= inc_threshold1 || dist_inc2(i) <= inc_threshold2 && objective(i) == 1)
-                objective(i) = 2;
-            end
-            if dist_wat(i) <= wat_threshold && objective(i) == 2
-                objective(i) = 1;
-            end
-        end
 
-        [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, states, Kp, Ka, Ke, G_fire, G_water, G_fligt, objective);
-        
-        % Impose a maximum velocity
-        vel(:,1) = sign(vel(:,1)) .* min(abs(vel(:,1)), vel_lin_max);
-        vel(:,3) = sign(vel(:,3)) .* min(abs(vel(:,3)), vel_ang_max);
+        % Extended Kalman Filter
+        measure = states' + [std_gps * randn(2, numUAV); zeros(1, numUAV); std_gyro * randn(1, numUAV)];
+        [states_est, P] = ExtendedKalmanFilter_function(states_est, z, J_A, B, Q, H, R, P, dt);
 
-        for k = 1:numUAV
-            states(k,:) = compute_dynamics(A,B,states(k,:),vel(k,:),dt);
-            trajectories(k,:,count) = states(k,:);
-        end
+
+        [states, trajectories, objective] = modelSimulation_function(numUAV, dimgrid, states, objective, ...
+            pos_fire1, pos_fire2, pos_water, inc_threshold1, inc_threshold2, wat_threshold, ...
+            Kp, Ka, Ke, G_fire, G_water, G_fligt, vel_lin_max, vel_ang_max, A, B, dt, trajectories, count);
 
         cla;
-        
+
+
+
         for i = 1:numUAV
             
             % Plot the current drone position as a marker

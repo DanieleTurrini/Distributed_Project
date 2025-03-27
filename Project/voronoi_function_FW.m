@@ -1,4 +1,4 @@
-function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV,dimgrid, states, Kp, Ka, Ke, G_fire, G_water, objective)
+function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV,dimgrid, states, Kp, Ka, Ke, G_fire, G_water, G_fligt, objective)
 
     % Crea una griglia di punti con le dimensioni specificate da dimgrid
     [X, Y] = meshgrid(1:dimgrid(1), 1:dimgrid(2));
