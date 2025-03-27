@@ -4,7 +4,7 @@ clc;
 
 %% Parameters
 
-DO_SIMULATION = true;
+DO_SIMULATION = false;
 PLOT_DENSITY_FUNCTIONS = true;
 
 % Vehicles Parameters 
@@ -75,13 +75,16 @@ wat_threshold = 60;   % Distance that has to be reach from the water source to r
 % Simulation Parameters 
 dt = 0.01;
 T_sim = 100;
+scenario = 1;
 
 [G_fire,G_water] = objective_density_functions(dimgrid, pos_fire1,pos_fire2,pos_water,sigma_fire1,sigma_fire2,sigma_water,PLOT_DENSITY_FUNCTIONS);
+
+G_fligt = create_flight_surface(dimgrid,scenario);
 
 trajectories = zeros(numUAV, 4, T_sim/dt);
 
 % Prepare figure for simulation
-figure(2);
+figure(3);
 colors = lines(numUAV);
 hold on;
 axis([0 dimgrid(1) 0 dimgrid(2) 0 dimgrid(3)]);
@@ -112,7 +115,7 @@ if DO_SIMULATION
             end
         end
 
-        [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, states, Kp, Ka, Ke, G_fire, G_water, objective);
+        [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, states, Kp, Ka, Ke, G_fire, G_water, G_fligt, objective);
         
         % Impose a maximum velocity
         vel(:,1) = sign(vel(:,1)) .* min(abs(vel(:,1)), vel_lin_max);
@@ -137,7 +140,16 @@ if DO_SIMULATION
 
         plot3(x_fire1,y_fire1,0,'x','Color', 'r', 'MarkerSize', sigma_fire1)
         plot3(x_fire2,y_fire2,0,'x','Color', 'r', 'MarkerSize', sigma_fire2)
-        plot3(x_water,y_water,0,'o','Color', 'b', 'MarkerSize', sigma_water)
+        
+        % Plot the water
+        r = sigma_water/2;                     % Raggio del cerchio
+        theta = linspace(0, 2*pi, 100);  % Parametro angolare
+        
+        % Equazioni parametriche
+        x_circle = r * cos(theta) + x_water;
+        y_circle = r * sin(theta) + y_water;
+        z_circle = zeros(size(theta));  
+        plot3(x_circle, y_circle, z_circle, 'b', 'LineWidth', 2);
 
         drawnow;  % Force MATLAB to update the figure
 
