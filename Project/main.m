@@ -12,8 +12,8 @@ DO_SIMULATION = true;
 PLOT_DENSITY_FUNCTIONS = true;
 
 %% Vehicles Parameters 
-vel_lin_max = 100; 
-vel_ang_max = 20; 
+vel_lin_max = 200; 
+vel_ang_max = 40; 
 dimension = 3;  % Dimension of the UAV
 numUAV = 6;
 Kp = 50;   % Proportional gain for the linear velocity  
@@ -36,11 +36,11 @@ objective = ones(numUAV,1);     % - objective = 1 : the UAV is filled with
 objective_est = ones(numUAV,1);
 
 % Dynamicc
-fun = @(state, control, deltat) [state(1) + control(1) * cos(state(4)) * deltat, ...
-                                 state(2) + control(1) * sin(state(4)) * deltat, ...
-                                 state(3) + control(2) * deltat, ...
-                                 state(4) + control(2) * deltat];
-%{
+fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
+                                 state(2) + u(1) * sin(state(4)) * deltat, ...
+                                 state(3) + u(2) * deltat, ...
+                                 state(4) + u(3) * deltat];
+
  
 % State Transition Matrix
 A = [1, 0, 0, 0;
@@ -53,13 +53,13 @@ B = @(theta,dt) dt * [cos(theta), 0, 0;
                       sin(theta), 0, 0;
                                0, 1, 0;
                                0, 0, 1]; 
-%}
+
 
 %% Kalman Filter Parameters
 % Jacobian of the state model
-J_A = @(control, theta, deltat) [1, 0, -control(1) * sin(theta) * deltat, 0;
-                            0, 1, control(2) * cos(theta) * deltat, 0;
-                            0, 0, control(3), 0;
+J_A = @(u, theta, deltat) [1, 0,0, -u(1) * sin(theta) * deltat;
+                            0, 1,0, u(2) * cos(theta) * deltat;
+                            0, 0, u(3), 0;
                             0, 0, 0, 1];
 
 % Matrix of the propagation of the process noise for (x,y,z,theta) 4x4
@@ -148,6 +148,16 @@ if DO_SIMULATION
             trajectories(k,:,count) = states(k,:);
         end
 
+%{
+         for k = 1:numUAV
+            % Update the state of each drone using the dynamics model
+            states(k,:) = compute_dynamics(A, B, states(k,:), control(k,:), dt);
+            % Store the updated state in the trajectories array
+            trajectories(k,:,count) = states(k,:);
+        end  
+%}
+
+
         % Model Simulation - ESTIMATED
         [control_est, objective_est] = modelSimulation_function(numUAV, dimgrid, states_est, objective_est, ...
             pos_fire1, pos_fire2, pos_water, inc_threshold1, inc_threshold2, wat_threshold, ...
@@ -164,7 +174,9 @@ if DO_SIMULATION
 
         %% Plots
         % real        
-        figure(3);clf
+        plotSimulation_function(states, numUAV, dimgrid, x_fire1, y_fire1, sigma_fire1, x_fire2, y_fire2, sigma_fire2, x_water, y_water, sigma_water, 3);
+%{
+         figure(3);clf
         colors = lines(numUAV);
         hold on;
         axis([0 dimgrid(1) 0 dimgrid(2) 0 dimgrid(3)]);
@@ -199,9 +211,12 @@ if DO_SIMULATION
         z_circle = zeros(size(theta));  
         plot3(x_circle, y_circle, z_circle, 'b', 'LineWidth', 2);
 
-        drawnow;  % Force MATLAB to update the figure
+        drawnow;  % Force MATLAB to update the figure 
+%}
+
 
         % estimated
+        plotSimulation_function(states_est, numUAV, dimgrid, x_fire1, y_fire1, sigma_fire1, x_fire2, y_fire2, sigma_fire2, x_water, y_water, sigma_water, 4);
 
 
     end
