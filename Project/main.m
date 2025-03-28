@@ -2,20 +2,22 @@ clear all;
 close all;
 clc;
 
-%% Parameters
-% Simulation Parameters 
-dt = 0.01;
-T_sim = 50;
+% Parameters
+%% Simulation Parameters 
+dt = 0.1;
+T_sim = 10;
 scenario = 1;
 
 DO_SIMULATION = true;
 PLOT_DENSITY_FUNCTIONS = true;
+PLOT_TRAJECTORIES = true;
+PLOT_ITERATIVE_SIMULATION = false;
 
 %% Vehicles Parameters 
 vel_lin_max = 200; 
 vel_ang_max = 40; 
 dimension = 3;  % Dimension of the UAV
-numUAV = 6;
+numUAV = 3;
 Kp = 50;   % Proportional gain for the linear velocity  
 Ka = 15;   % Proportional gain for the angular velocity 
 Ke = 10;   % Additional gain for the angular velocity 
@@ -38,41 +40,28 @@ objective_est = ones(numUAV,1);
 % Dynamicc
 
 fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
-                                 state(2) + u(1) * sin(state(4)) * deltat, ...
-                                 state(3) + u(2) * deltat, ...
-                                 state(4) + u(3) * deltat];
-
- 
-% State Transition Matrix
-A = [1, 0, 0, 0;
-     0, 1, 0, 0;
-     0, 0, 1, 0;
-     0, 0, 0, 1];
-
-% Control Matrix
-B = @(theta,dt) dt * [cos(theta), 0, 0;
-                      sin(theta), 0, 0;
-                               0, 1, 0;
-                               0, 0, 1]; 
-
+                           state(2) + u(1) * sin(state(4)) * deltat, ...
+                           state(3) + u(2) * deltat, ...
+                           state(4) + u(3) * deltat];
 
 %% Kalman Filter Parameters
+
 % Jacobian of the state model
-J_A = @(u, theta, deltat) [1, 0,0, -u(1) * sin(theta) * deltat;
-                            0, 1,0, u(2) * cos(theta) * deltat;
-                            0, 0, u(3), 0;
-                            0, 0, 0, 1];
+A = @(u, theta, deltat) [1, 0,    0, -u(1) * sin(theta) * deltat;
+                           0, 1,    0,  u(2) * cos(theta) * deltat;
+                           0, 0,    1,                           0;
+                           0, 0,    0,                           1];
 
 % Matrix of the propagation of the process noise for (x,y,z,theta) 4x4
 % We considered the niose as white and related to the uncertanty in the
 % control (is our uncertanty in the model)
-G = @(theta, deltat) [cos(theta) * deltat,0,0;
-              sin(theta) * deltat,0,0;
-              0,deltat,0;
-              0,0,deltat];
+G = @(theta, deltat) [cos(theta) * deltat,      0,      0;
+                      sin(theta) * deltat,      0,      0;
+                                        0, deltat,      0;
+                                        0,      0, deltat];
 
 % Covariance of the process noise
-std_u = [0.1, 0.1, 0.1]; % Uncertainty on the velocity (tang , z) and angular velocity
+std_u = [0.5, 0.5, 0.5]; % Uncertainty on the velocity (tang , z) and angular velocity
 Q = diag(std_u.^2);
 
 % Measurement Parameters
@@ -81,14 +70,18 @@ std_gyro = 0.05; % Standard deviation of the gyroscope
 std_ultrasonic = 0.1; % Standard deviation of the ultrasonic sensor
 R = diag([std_gps^2, std_gps^2, std_ultrasonic^2, std_gyro^2]); % Covariance of the measurement noise
 
+
 % Initial state (x,y,z,theta)
 states_est = (states' + [std_gps * randn(2, numUAV); zeros(1, numUAV); std_gyro * randn(1, numUAV)])';
 
 % Observation matrix (H)
-H = [1,0,0,0;
-     0,1,0,0;
-     0,0,1,0;
-     0,0,0,dt]; % ( me measure theta with a gyroscope)
+H = [1,0,0,    0;
+     0,1,0,    0;
+     0,0,1,    0;
+     0,0,0, 1/dt]; % ( me measure theta with a gyroscope, it measure
+                %   the angular velocity so we have
+                %   to multiply it by the time step )
+
 
 % Covariance matrix of the initial estimate
 P = eye(4) * 100; % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -133,8 +126,6 @@ trajectories_est = zeros(numUAV, 4, T_sim/dt);
 % Save all the traces of P
 P_trace = zeros(T_sim/dt, numUAV);
 
-
-
 %% Simulation
 if DO_SIMULATION
     
@@ -145,7 +136,7 @@ if DO_SIMULATION
 
 
         % Model Simulation - REAL
-        [control, objective] = modelSimulation_function(numUAV, dimgrid, states, objective, ...
+        [control, objective, centroids] = modelSimulation_function(numUAV, dimgrid, states, objective, ...
             pos_fire1, pos_fire2, pos_water, inc_threshold1, inc_threshold2, wat_threshold, ...
             Kp, Ka, Ke, G_fire, G_water, G_fligt, vel_lin_max, vel_ang_max);
         
@@ -154,25 +145,17 @@ if DO_SIMULATION
             trajectories(k,:,count) = states(k,:);
         end
 
-%{
-         for k = 1:numUAV
-            % Update the state of each drone using the dynamics model
-            states(k,:) = compute_dynamics(A, B, states(k,:), control(k,:), dt);
-            % Store the updated state in the trajectories array
-            trajectories(k,:,count) = states(k,:);
-        end  
-%}
-
-
         % Model Simulation - ESTIMATED
-        [control_est, objective_est] = modelSimulation_function(numUAV, dimgrid, states_est, objective_est, ...
+        [control_est, objective_est, centroids_est] = modelSimulation_function(numUAV, dimgrid, states_est, objective_est, ...
             pos_fire1, pos_fire2, pos_water, inc_threshold1, inc_threshold2, wat_threshold, ...
             Kp, Ka, Ke, G_fire, G_water, G_fligt, vel_lin_max, vel_ang_max);
         
         % Extended Kalman Filter
-        measure = (states' + [std_gps * randn(2, numUAV); zeros(1, numUAV); std_gyro * randn(1, numUAV)])';
+        measure = (H * states' + [std_gps * randn(2, numUAV); zeros(1, numUAV); std_gyro * randn(1, numUAV)])';
+
+
         for k = 1:numUAV
-            [states_est(k,:), P] = ExtendedKalmanFilter_function(states_est(k,:), measure(k,:), control_est(k,:), J_A, G, fun, Q, H, R, P, dt);
+            [states_est(k,:), P] = ExtendedKalmanFilter_function(states_est(k,:), measure(k,:), control_est(k,:), A, G, fun, Q, H, R, P, dt);
             P_trace(count,k) = trace(P);
         end
         
@@ -184,80 +167,86 @@ if DO_SIMULATION
         end
 
         %% Plots
-        % real and estimated    
-        plotSimulation_function(states, states_est, numUAV, dimgrid, x_fire1, y_fire1, sigma_fire1, x_fire2, y_fire2, sigma_fire2, x_water, y_water, sigma_water, 3);
-%{
-         figure(3);clf
-        colors = lines(numUAV);
-        hold on;
-        axis([0 dimgrid(1) 0 dimgrid(2) 0 dimgrid(3)]);
-        xlabel('X Coordinate');
-        ylabel('Y Coordinate');
-        zlabel('Z Coordinate');
-        title('Simulation');
-        view(3);
-        grid on;
+        % real and estimated   
+        if PLOT_ITERATIVE_SIMULATION
 
-
-        for i = 1:numUAV
-            
-            % Plot the current drone position as a marker
-            plot3(states(i,1),states(i,2),states(i,3));
-            
-            drawUnicycle(states(i,1),states(i,2),states(i,4));
+            plotSimulation_function(states, states_est, numUAV, dimgrid, x_fire1, y_fire1, sigma_fire1, x_fire2, y_fire2, sigma_fire2, x_water, y_water, sigma_water, 3);
 
         end
-        voronoi(states(:,1),states(:,2));
-
-        plot3(x_fire1,y_fire1,0,'x','Color', 'r', 'MarkerSize', sigma_fire1)
-        plot3(x_fire2,y_fire2,0,'x','Color', 'r', 'MarkerSize', sigma_fire2)
-        
-        % Plot the water
-        r = sigma_water/2;                     % Raggio del cerchio
-        theta = linspace(0, 2*pi, 100);  % Parametro angolare
-        
-        % Equazioni parametriche
-        x_circle = r * cos(theta) + x_water;
-        y_circle = r * sin(theta) + y_water;
-        z_circle = zeros(size(theta));  
-        plot3(x_circle, y_circle, z_circle, 'b', 'LineWidth', 2);
-
-        drawnow;  % Force MATLAB to update the figure 
-%}
-
-
-        % estimated
-        %plotSimulation_function(states_est, numUAV, dimgrid, x_fire1, y_fire1, sigma_fire1, x_fire2, y_fire2, sigma_fire2, x_water, y_water, sigma_water, 4);
-
 
     end
 
-    % Plot the trajectories of the UAVs -> Real and Estimated vs Time
-    dronetoPlot = 1; % Choose the drone to plot
-    figure(5); clf;
-    subplot(1,2,1);
-    hold on;
-    grid on;
-    title('Real Trajectories Vs Estimated Trajectories of UAV', num2str(dronetoPlot));
-    xlabel('Time (s)');
-    ylabel('Position (m)');
-    legend('Real Trajectory', 'Estimated Trajectory');
-        plot(0:dt:T_sim, trajectories(dronetoPlot,1,:), 'Color', 'b', 'LineWidth', 2); % Real trajectory
-        plot(0:dt:T_sim, trajectories_est(dronetoPlot,1,:), 'Color', 'r', 'LineWidth', 2); % Estimated trajectory
-    hold off;
-    grid on;
-    title('Real and Estimated Trajectories');
+    if PLOT_TRAJECTORIES
+        
+        for i = 1:numUAV
 
-    % Plot of the trace of P 
-    figure(6); clf;
-    hold on;
-    grid on;
-    title('Trace of P vs Time');
-    xlabel('Time (s)');
-    ylabel('Trace of P');
-    time_vector = 0:dt:(T_sim - dt); % Adjust time vector to match P_trace size
-    plot(time_vector, P_trace(:,dronetoPlot), 'Color', 'g', 'LineWidth', 2); % Trace of P
-    
+            figure(4 + i)
+            subplot(4,1,1);
+            plot(squeeze(trajectories(i,1,:)),'b');
+            hold on;
+            plot(squeeze(trajectories_est(i,1,:)),'r--');
+            hold off;
+            xlabel('Time');
+            ylabel('X');
+            title(sprintf('X-Dimension of drone %d',i));
+
+            subplot(4,1,2);
+            plot(squeeze(trajectories(i,2,:)),'b');
+            hold on;
+            plot(squeeze(trajectories_est(i,2,:)),'r--');
+            hold off;
+            xlabel('Time');
+            ylabel('Y');
+            title(sprintf('Y-Dimension of drone %d',i));
+
+            subplot(4,1,3);
+            plot(squeeze(trajectories(i,3,:)),'b');
+            hold on;
+            plot(squeeze(trajectories_est(i,3,:)),'r--');
+            hold off;
+            xlabel('Time');
+            ylabel('Z');
+            title(sprintf('Z-Dimension of drone %d',i));
+
+            subplot(4,1,4);
+            plot(squeeze(trajectories(i,4,:)),'b');
+            hold on;
+            plot(squeeze(trajectories_est(i,4,:)),'r--');
+            hold off;
+            xlabel('Time');
+            ylabel('Theta');
+            title(sprintf('Theta-Dimension of drone %d',i));
+          
+        end
+
+    end
+
+    % % Plot the trajectories of the UAVs -> Real and Estimated vs Time
+    % dronetoPlot = 1; % Choose the drone to plot
+    % figure(5); clf;
+    % subplot(1,2,1);
+    % hold on;
+    % grid on;
+    % title('Real Trajectories Vs Estimated Trajectories of UAV', num2str(dronetoPlot));
+    % xlabel('Time (s)');
+    % ylabel('Position (m)');
+    % legend('Real Trajectory', 'Estimated Trajectory');
+    %     plot(0:dt:T_sim, trajectories(dronetoPlot,1,:), 'Color', 'b', 'LineWidth', 2); % Real trajectory
+    %     plot(0:dt:T_sim, trajectories_est(dronetoPlot,1,:), 'Color', 'r', 'LineWidth', 2); % Estimated trajectory
+    % hold off;
+    % grid on;
+    % title('Real and Estimated Trajectories');
+    % 
+    % % Plot of the trace of P 
+    % figure(6); clf;
+    % hold on;
+    % grid on;
+    % title('Trace of P vs Time');
+    % xlabel('Time (s)');
+    % ylabel('Trace of P');
+    % time_vector = 0:dt:(T_sim - dt); % Adjust time vector to match P_trace size
+    % plot(time_vector, P_trace(:,dronetoPlot), 'Color', 'g', 'LineWidth', 2); % Trace of P
+    % 
 
 
 end

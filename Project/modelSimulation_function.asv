@@ -1,5 +1,5 @@
 % filepath: c:\Users\jackb\Desktop\Distributed\Distributed_Project\Project\modelSimulation_function.m
-function [vel, objective, weigth_centroids] = modelSimulation_function(numUAV, dimgrid, states, objective, ...
+function [vel, objective] = modelSimulation_function(numUAV, dimgrid, states, objective, ...
     pos_fire1, pos_fire2, pos_water, inc_threshold1, inc_threshold2, wat_threshold, ...
     Kp, Ka, Ke, G_fire, G_water, G_fligt, vel_lin_max, vel_ang_max)
     
@@ -42,7 +42,7 @@ function [vel, objective, weigth_centroids] = modelSimulation_function(numUAV, d
     % Compute the distances from fires and water source for each drone
     dist_inc1 = pdist2(pos_fire1, states(:,1:2)); % Distance to the first fire
     dist_inc2 = pdist2(pos_fire2, states(:,1:2)); % Distance to the second fire
-    dist_wat  = pdist2(pos_water, states(:,1:2)); % Distance to the water source
+    dist_wat = pdist2(pos_water, states(:,1:2)); % Distance to the water source
     
     % Verify if the wanted distance from the target is reached
     for i = 1:numUAV

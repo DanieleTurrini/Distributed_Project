@@ -1,0 +1,14 @@
+function [states_est, P] = ExtendedKalmanFilter_function(states_est, measure, control, A, G, fun, Q, H, R, P, dt)
+    
+    % Prediction step
+    x_pred = fun(states_est, control, dt);  % state prediction
+    A_k = A(control, states_est(4), dt);    
+    G_k = G(states_est(4), dt);
+    P_pred = A_k * P * A_k' + G_k * Q * G_k';   % covariance prediction
+    
+    % Update step
+    y = measure' - H * x_pred';
+    W = P_pred * H' / (H * P_pred * H' + R);
+    states_est = (x_pred' + W * )';
+    P = (eye(size(P)) - W * H) * P_pred;
+end
