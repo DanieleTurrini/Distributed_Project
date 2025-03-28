@@ -5,7 +5,7 @@ clc;
 %% Parameters
 % Simulation Parameters 
 dt = 0.01;
-T_sim = 100;
+T_sim = 50;
 scenario = 1;
 
 DO_SIMULATION = true;
@@ -36,19 +36,12 @@ objective = ones(numUAV,1);     % - objective = 1 : the UAV is filled with
 objective_est = ones(numUAV,1);
 
 % Dynamicc
-<<<<<<< HEAD
+
 fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
                                  state(2) + u(1) * sin(state(4)) * deltat, ...
                                  state(3) + u(2) * deltat, ...
                                  state(4) + u(3) * deltat];
 
-=======
-fun = @(state, control, deltat) [state(1) + control(1) * cos(state(4)) * deltat, ...
-                                 state(2) + control(1) * sin(state(4)) * deltat, ...
-                                 state(3) + control(2) * deltat, ...
-                                 state(4) + control(3) * deltat];
-%{
->>>>>>> 673871fa5da62868e2fdf3a685ebf2e0fea746ba
  
 % State Transition Matrix
 A = [1, 0, 0, 0;
@@ -65,18 +58,10 @@ B = @(theta,dt) dt * [cos(theta), 0, 0;
 
 %% Kalman Filter Parameters
 % Jacobian of the state model
-<<<<<<< HEAD
 J_A = @(u, theta, deltat) [1, 0,0, -u(1) * sin(theta) * deltat;
                             0, 1,0, u(2) * cos(theta) * deltat;
                             0, 0, u(3), 0;
                             0, 0, 0, 1];
-=======
-J_A = @(control, theta, deltat) [1, 0, 0, -control(1) * sin(theta) * deltat;
-                                 0, 1, 0, control(2) * cos(theta) * deltat;
-                                 0, 0, 1, 0;
-                                 0, 0, 0, 1];
-
->>>>>>> 673871fa5da62868e2fdf3a685ebf2e0fea746ba
 
 % Matrix of the propagation of the process noise for (x,y,z,theta) 4x4
 % We considered the niose as white and related to the uncertanty in the
@@ -91,7 +76,7 @@ std_u = [0.1, 0.1, 0.1]; % Uncertainty on the velocity (tang , z) and angular ve
 Q = diag(std_u.^2);
 
 % Measurement Parameters
-std_gps = 0.1; % Standard deviation of the GPS
+std_gps = 1; % Standard deviation of the GPS
 std_gyro = 0.05; % Standard deviation of the gyroscope
 std_ultrasonic = 0.1; % Standard deviation of the ultrasonic sensor
 R = diag([std_gps^2, std_gps^2, std_ultrasonic^2, std_gyro^2]); % Covariance of the measurement noise
@@ -145,6 +130,9 @@ G_fligt = create_flight_surface(dimgrid,scenario);
 trajectories = zeros(numUAV, 4, T_sim/dt);
 trajectories_est = zeros(numUAV, 4, T_sim/dt);
 
+% Save all the traces of P
+P_trace = zeros(T_sim/dt, numUAV);
+
 
 
 %% Simulation
@@ -183,7 +171,12 @@ if DO_SIMULATION
         
         % Extended Kalman Filter
         measure = (states' + [std_gps * randn(2, numUAV); zeros(1, numUAV); std_gyro * randn(1, numUAV)])';
-        [states_est, P] = ExtendedKalmanFilter_function(states_est, measure, control_est, J_A, G, fun, Q, H, R, P, dt);
+        for k = 1:numUAV
+            [states_est(k,:), P] = ExtendedKalmanFilter_function(states_est(k,:), measure(k,:), control_est(k,:), J_A, G, fun, Q, H, R, P, dt);
+            P_trace(count,k) = trace(P);
+        end
+        
+        % [states_est, P] = ExtendedKalmanFilter_function(states_est, measure, control_est, J_A, G, fun, Q, H, R, P, dt);
 
         
         for k = 1:numUAV
@@ -191,8 +184,8 @@ if DO_SIMULATION
         end
 
         %% Plots
-        % real        
-        plotSimulation_function(states, numUAV, dimgrid, x_fire1, y_fire1, sigma_fire1, x_fire2, y_fire2, sigma_fire2, x_water, y_water, sigma_water, 3);
+        % real and estimated    
+        plotSimulation_function(states, states_est, numUAV, dimgrid, x_fire1, y_fire1, sigma_fire1, x_fire2, y_fire2, sigma_fire2, x_water, y_water, sigma_water, 3);
 %{
          figure(3);clf
         colors = lines(numUAV);
@@ -234,9 +227,37 @@ if DO_SIMULATION
 
 
         % estimated
-        plotSimulation_function(states_est, numUAV, dimgrid, x_fire1, y_fire1, sigma_fire1, x_fire2, y_fire2, sigma_fire2, x_water, y_water, sigma_water, 4);
+        %plotSimulation_function(states_est, numUAV, dimgrid, x_fire1, y_fire1, sigma_fire1, x_fire2, y_fire2, sigma_fire2, x_water, y_water, sigma_water, 4);
 
 
     end
+
+    % Plot the trajectories of the UAVs -> Real and Estimated vs Time
+    dronetoPlot = 1; % Choose the drone to plot
+    figure(5); clf;
+    subplot(1,2,1);
+    hold on;
+    grid on;
+    title('Real Trajectories Vs Estimated Trajectories of UAV', num2str(dronetoPlot));
+    xlabel('Time (s)');
+    ylabel('Position (m)');
+    legend('Real Trajectory', 'Estimated Trajectory');
+        plot(0:dt:T_sim, trajectories(dronetoPlot,1,:), 'Color', 'b', 'LineWidth', 2); % Real trajectory
+        plot(0:dt:T_sim, trajectories_est(dronetoPlot,1,:), 'Color', 'r', 'LineWidth', 2); % Estimated trajectory
+    hold off;
+    grid on;
+    title('Real and Estimated Trajectories');
+
+    % Plot of the trace of P 
+    figure(6); clf;
+    hold on;
+    grid on;
+    title('Trace of P vs Time');
+    xlabel('Time (s)');
+    ylabel('Trace of P');
+    time_vector = 0:dt:(T_sim - dt); % Adjust time vector to match P_trace size
+    plot(time_vector, P_trace(:,dronetoPlot), 'Color', 'g', 'LineWidth', 2); % Trace of P
+    
+
 
 end
