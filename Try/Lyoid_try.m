@@ -8,7 +8,7 @@ INITIAL_VALUES = false;
 PLOT_TRAJECTORIES = false;
 
 acc_max = 100; 
-inc_threshold1 = 15;  % Distance that has to be reach from the fire 1 
+inc_threshold1 = 60;  % Distance that has to be reach from the fire 1 
 inc_threshold2 = 15;  % Distance that has to be reach from the fire 2
 wat_threshold = 20;   % Distance that has to be reach from the water source to refill
 refill_time = 20;
@@ -77,7 +77,7 @@ pos_fire2 = [x_fire2, y_fire2];
 pos_water = [x_water, y_water];
 
 % Standard deviations of fires and water source
-sigma_fire1 = 15;
+sigma_fire1 = 60;
 sigma_fire2 = 15;
 sigma_water = 20;
 
