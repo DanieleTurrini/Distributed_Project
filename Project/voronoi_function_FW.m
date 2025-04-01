@@ -1,4 +1,4 @@
-function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV,dimgrid, states, Kp, Ka, Ke, G_fire, G_water, G_fligt, objective)
+function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV,dimgrid, states, Kp_z, Kp, Ka, Ke, G_fire, G_water, scenario, objective)
 
     % Crea una griglia di punti con le dimensioni specificate da dimgrid
     [X, Y] = meshgrid(1:dimgrid(1), 1:dimgrid(2));
@@ -40,7 +40,11 @@ function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV,dimgrid, st
 
         % Calcolo del centroide pesato
         weigth_centroids(i, :) = sum(region_points .* weights, 1) / masses(i);
-
+        
+        % Control velocity on plane x-y
         vel(i,:) = UAV_control(weigth_centroids(i, :),states(i, :), Kp, Ka, Ke);
+
+        % Control velocity on z
+        vel(i,2) = Kp_z * (flight_surface(states(i,1), states(i,2), scenario)  - states(i,3));
         
     end

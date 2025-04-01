@@ -1,7 +1,7 @@
 % filepath: c:\Users\jackb\Desktop\Distributed\Distributed_Project\Project\modelSimulation_function.m
-function [vel, objective, weigth_centroids] = modelSimulation_function(numUAV, dimgrid, states, objective, ...
+function [vel, objective, weigth_centroids] = control_computation(numUAV, dimgrid, states, objective, ...
     pos_fire1, pos_fire2, pos_water, inc_threshold1, inc_threshold2, wat_threshold, ...
-    Kp, Ka, Ke, G_fire, G_water, G_fligt, vel_lin_max, vel_ang_max)
+    Kp_z, Kp, Ka, Ke, G_fire, G_water, scenario, vel_lin_max,vel_lin_min, vel_lin_z_max, vel_ang_max)
     
 %{
 %%%% INPUT PARAMETERS:
@@ -57,10 +57,12 @@ function [vel, objective, weigth_centroids] = modelSimulation_function(numUAV, d
     end
 
     % Compute Voronoi tessellation and velocities
-    [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, states, Kp, Ka, Ke, G_fire, G_water, G_fligt, objective);
+    [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, states, Kp_z, Kp, Ka, Ke, G_fire, G_water, scenario, objective);
 
     % Impose a maximum velocity
-    vel(:,1) = sign(vel(:,1)) .* min(abs(vel(:,1)), vel_lin_max); % Limit linear velocity
+    % The linear straight velocty has also a minimum velocity since we are considering Fixed wing UAV 
+    vel(:,1) = sign(vel(:,1)) .* max(min(abs(vel(:,1)), vel_lin_max), vel_lin_min); % Linear velocity 
+    vel(:,2) = sign(vel(:,2)) .* min(abs(vel(:,2)), vel_lin_z_max); % Limit linear velocity along z
     vel(:,3) = sign(vel(:,3)) .* min(abs(vel(:,3)), vel_ang_max); % Limit angular velocity
 
 
