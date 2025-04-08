@@ -2,8 +2,8 @@ clear all;
 close all;
 clc;
 
-% Parameters
 %% Simulation Parameters 
+
 dt = 0.01;
 T_sim = 5;
 scenario = 1;
@@ -11,16 +11,16 @@ scenario = 1;
 DO_SIMULATION = true;
 PLOT_DENSITY_FUNCTIONS = true;
 PLOT_TRAJECTORIES = true;
-PLOT_ITERATIVE_SIMULATION = false;
+PLOT_ITERATIVE_SIMULATION = true;
 
 %% Vehicles Parameters 
 
-vel_lin_max = 200;  
-vel_lin_min = 30;
-vel_lin_z_max = 50; 
-vel_ang_max = 30; 
+vel_lin_max = 200;  % Maximum linear velocity
+vel_lin_min = 30;   % Minimum linear velocity
+vel_lin_z_max = 50; % Maximum linear velocity along z
+vel_ang_max = 30;  % Maximum angular velocity
 dim_UAV = 3;  % Dimension of the UAV
-numUAV = 5;
+numUAV = 5;   % Number of UAV
 Kp_z = 10;  % Proportional gain for the linear velocity along z
 Kp = 50;   % Proportional gain for the linear velocity  
 Ka = 15;   % Proportional gain for the angular velocity 
@@ -30,19 +30,20 @@ height_flight = 30;   % Height of flight from the ground
 % Generate random starting positions for each point
 x = rand(numUAV, 1) * 100;   % Random x coordinates
 y = 100 + rand(numUAV, 1) * 100;  % Random y coordinates
-z = zeros(numUAV,1);
+z = zeros(numUAV,1);    % Start from ground
 theta = zeros(numUAV,1);
 
 states = [x, y, z, theta];
 
-objective = ones(numUAV,1);     % - objective = 1 : the UAV is filled with
+objective = ones(numUAV,1);     % -> objective = 1 : the UAV is filled with
                                 % water and is going to put out the fire
-                                % - objective = 2 : the UAV is empty and is
+                                % -> objective = 2 : the UAV is empty and is
                                 % going to refill
                                 % (we assume every one empty at the beginning)
-objective_est = ones(numUAV,1);
 
-% Dynamicc
+objective_est = ones(numUAV,1); % the objective of the estimated positions
+
+% Dynamics
 
 fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
                            state(2) + u(1) * sin(state(4)) * deltat, ...
@@ -52,6 +53,7 @@ fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
 %% Kalman Filter Parameters
 
 % Jacobian of the state model
+% !!! WE ASSUME THE CONTROL AS INDIPENDENT FROM THE STATE -> NOT TRUE !!!
 A = @(u, theta, deltat) [1, 0,    0, -u(1) * sin(theta) * deltat;
                          0, 1,    0,  u(2) * cos(theta) * deltat;
                          0, 0,    1,                           0;
@@ -72,7 +74,7 @@ Q = diag(std_u.^2);
 % Measurement Parameters
 
 % Measurements frequency [cs]
-meas_freq_GPS = 50;
+meas_freq_GPS = 20;
 meas_freq_ultr = 2;
 meas_freq_gyr = 5;
 
@@ -95,12 +97,13 @@ H = [1,0,0,    0;
 
 
 % Covariance matrix of the initial estimate
-P = eye(4) * 1; % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+P = eye(4) * 20; % We consider some starting uncertanty
 
 % Map Parameters
 dimgrid = [500 500 500];   % Define the dimensions of the grid
 
 %% Fires Parameters
+
 % Fires Positions
 x_fire1 = 400;
 y_fire1 = 400;
@@ -111,12 +114,15 @@ pos_fire2 = [x_fire2, y_fire2];
 
 sigma_fire1 = 15;   % Standard deviation of the first fire
                     % (correspond to the extention of the fire)
+
 sigma_fire2 = 15;   % Standard deviation of the second fire
                     % (correspond to the extention of the fire)
+
 inc_threshold1 = sigma_fire1;  % Distance that has to be reach from the fire 1 
 inc_threshold2 = sigma_fire2;  % Distance that has to be reach from the fire 2
 
 %% Water Parameters
+
 % Water Positions
 x_water = 50;
 y_water = 50;
@@ -125,9 +131,8 @@ pos_water = [x_water, y_water];
 sigma_water = 60;
 wat_threshold = sigma_water;   % Distance that has to be reach from the water source to refill
 
-
 % Density Functions for the fires and the water
-[G_fire,G_water] = objective_density_functions(dimgrid, pos_fire1,pos_fire2,pos_water,sigma_fire1,sigma_fire2,sigma_water,PLOT_DENSITY_FUNCTIONS);
+[G_fire,G_water] = objective_density_functions(dimgrid, pos_fire1, pos_fire2, pos_water, sigma_fire1, sigma_fire2, sigma_water, PLOT_DENSITY_FUNCTIONS);
 
 plot_flight_surface();
 
@@ -145,28 +150,30 @@ if DO_SIMULATION
 
         count = count + 1;
         
-        % Control algorithm - IDEAL
-        [control, objective, centroids] = control_computation(numUAV, dimgrid, states, objective, ...
-            pos_fire1, pos_fire2, pos_water, inc_threshold1, inc_threshold2, wat_threshold, ...
-            Kp_z, Kp, Ka, Ke, G_fire, G_water, scenario, vel_lin_max, vel_lin_min, vel_lin_z_max, vel_ang_max);
-        
-        for k = 1:numUAV
-            states(k,:) = fun(states(k,:), control(k,:), dt);
-            trajectories(k,:,count) = states(k,:);
-        end
+        % % Control algorithm - IDEAL
+        % % (control computed considering the real positions)
+        % [control, objective, centroids] = control_computation(numUAV, dimgrid, states, objective, ...
+        %     pos_fire1, pos_fire2, pos_water, inc_threshold1, inc_threshold2, wat_threshold, ...
+        %     Kp_z, Kp, Ka, Ke, G_fire, G_water, scenario, vel_lin_max, vel_lin_min, vel_lin_z_max, vel_ang_max);
 
         % Model Simulation - ESTIMATED
         [control_est, objective_est, centroids_est] = control_computation(numUAV, dimgrid, states_est, objective_est, ...
             pos_fire1, pos_fire2, pos_water, inc_threshold1, inc_threshold2, wat_threshold, ...
             Kp_z, Kp, Ka, Ke, G_fire, G_water, scenario, vel_lin_max, vel_lin_min, vel_lin_z_max, vel_ang_max);
+    
+        % Model Simulation - REAL 
+        % we use to control the real model the velocities computed using
+        % the estimated states (as it will be in real applications) 
+        for k = 1:numUAV
+            states(k,:) = fun(states(k,:), control_est(k,:), dt);
+            trajectories(k,:,count) = states(k,:);
+        end
+
         
         % Extended Kalman Filter
         measure = (H * states' + [std_gps * randn(2, numUAV); ...
                                   std_ultrasonic * randn(1, numUAV); ...
                                   std_gyro * randn(1, numUAV)])';
-
-        % GPS measurement
-        GPS_meas = (H(1:2,:) * states' + std_gps * randn(2, numUAV))';
 
         for k = 1:numUAV
 
@@ -181,14 +188,12 @@ if DO_SIMULATION
             trajectories_est(k,:,count) = states_est(k,:);
         end
 
-        % Model Simulation - REAL
-        
 
         %% Plots
         % real and estimated   
         if PLOT_ITERATIVE_SIMULATION
 
-            plotSimulation_function(states, states_est,centroids,centroids_est, numUAV, dimgrid, x_fire1, y_fire1, sigma_fire1, x_fire2, y_fire2, sigma_fire2, x_water, y_water, sigma_water,dim_UAV, 3);
+            plotSimulation_function(states, states_est, centroids_est, numUAV, dimgrid, x_fire1, y_fire1, sigma_fire1, x_fire2, y_fire2, sigma_fire2, x_water, y_water, sigma_water,dim_UAV, 3);
 
         end
 
@@ -206,7 +211,7 @@ if DO_SIMULATION
             hold off;
             xlabel('Time');
             ylabel('X');
-            title(sprintf('X-Dimension of drone %d',i));
+            title(sprintf('X-Dimension of UAV %d',i));
             legend('Real Trajectory','Estimated Trajectory');
 
             subplot(4,1,2);
@@ -216,7 +221,7 @@ if DO_SIMULATION
             hold off;
             xlabel('Time');
             ylabel('Y');
-            title(sprintf('Y-Dimension of drone %d',i));
+            title(sprintf('Y-Dimension of UAV %d',i));
             legend('Real Trajectory','Estimated Trajectory');
 
             subplot(4,1,3);
@@ -226,7 +231,7 @@ if DO_SIMULATION
             hold off;
             xlabel('Time');
             ylabel('Z');
-            title(sprintf('Z-Dimension of drone %d',i));
+            title(sprintf('Z-Dimension of UAV %d',i));
             legend('Real Trajectory','Estimated Trajectory');
 
             subplot(4,1,4);
@@ -236,7 +241,7 @@ if DO_SIMULATION
             hold off;
             xlabel('Time');
             ylabel('Theta');
-            title(sprintf('Theta-Dimension of drone %d',i));
+            title(sprintf('Theta-Dimension of UAV %d',i));
             legend('Real Trajectory','Estimated Trajectory');
 
             figure(5+numUAV)
@@ -244,7 +249,7 @@ if DO_SIMULATION
             plot(squeeze(P_trace(i,:)));
             xlabel('Time');
             ylabel('Covariance');
-            title('Trace of covariance Matrix');
+            title(sprintf('Trace of Covariance matrix of UAV %d',i));
           
         end
 
