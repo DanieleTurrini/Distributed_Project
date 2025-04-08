@@ -5,7 +5,7 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;
-T_sim = 3;
+T_sim = 5;
 scenario = 1;
 
 DO_SIMULATION = true;
@@ -16,7 +16,7 @@ PLOT_CONSENSUS = true;
 
 %% Vehicles Parameters 
 
-vel_lin_max = 600;  % Maximum linear velocity
+vel_lin_max = 200;  % Maximum linear velocity
 vel_lin_min = 30;   % Minimum linear velocity
 vel_lin_z_max = 50; % Maximum linear velocity along z
 vel_ang_max = 30;  % Maximum angular velocity
@@ -69,7 +69,7 @@ G = @(theta, deltat) [cos(theta) * deltat,      0,      0;
                                         0,      0, deltat];
 
 % Covariance of the process noise
-std_u = [5, 5, 5]; % Uncertainty on the velocity (tang , z) and angular velocity
+std_u = [2, 2, 2]; % Uncertainty on the velocity (tang , z) and angular velocity
 Q = diag(std_u.^2);
 
 % Measurement Parameters
@@ -77,9 +77,9 @@ Q = diag(std_u.^2);
 % Measurements frequency [cs]
 meas_freq_GPS = 10;
 meas_freq_ultr = 2;
-meas_freq_gyr = 5;
+meas_freq_gyr = 1;
 
-std_gps = 5; % Standard deviation of the GPS
+std_gps = 2; % Standard deviation of the GPS
 std_ultrasonic = 2; % Standard deviation of the ultrasonic sensor
 std_gyro = 0.5; % Standard deviation of the gyroscope
 R = diag([std_gps^2, std_gps^2, std_ultrasonic^2, std_gyro^2]); % Covariance of the measurement noise
@@ -98,7 +98,7 @@ H = [1,0,0,    0;
 
 
 % Covariance matrix of the initial estimate
-P = eye(4) * 20; % We consider some starting uncertanty
+P = eye(4) * 100; % We consider some starting uncertanty
 
 % Map Parameters
 dimgrid = [500 500 500];   % Define the dimensions of the grid
@@ -112,11 +112,14 @@ x_fire2 = 450;
 y_fire2 = 50;
 
 pos_fire1 = [x_fire1 , y_fire1];
-pos_fire1_mov = @(s) [x_fire1 - 0.2 * s , y_fire1];
+pos_fire1_mov = @(s) [x_fire1 - 30 * s + 30 , y_fire1 - 15 * s + 15]; % t start from 1
+
 pos_fire2 = [x_fire2, y_fire2];
 
-sigma_fire1 = 15;   % Standard deviation of the first fire
+sigma_fire1 = 40;   % Standard deviation of the first fire
                     % (correspond to the extention of the fire)
+
+sigma_fire1_mov = @(t) 40 - 5 * t + 5;
 
 sigma_fire2 = 15;   % Standard deviation of the second fire
                     % (correspond to the extention of the fire)
@@ -125,9 +128,11 @@ inc_threshold1 = sigma_fire1;  % Distance that has to be reach from the fire 1
 inc_threshold2 = sigma_fire2;  % Distance that has to be reach from the fire 2
 
 pos_est_fire1 = zeros(numUAV,2);
+sigma_est_fire1 = zeros(numUAV,1);
 
 for i = 1:numUAV
-    pos_est_fire1(i,:) = pos_fire1_mov(0); % Initialize the positions of the 
+    pos_est_fire1(i,:) = pos_fire1_mov(1); % Initialize the positions of the fire 1
+    sigma_est_fire1(i,1) = sigma_fire1_mov(1);
 end
 
 %% Water Parameters
@@ -155,8 +160,15 @@ P_trace = zeros(numUAV,(T_sim-1)/dt);
 
 LastMeas = ones(numUAV,1) * 1000; 
 Qc = ones(numUAV) * 1/numUAV;
-posFir1StoreX = zeros(numUAV,1,(T_sim-1)/dt);
+
+posFir1StoreX = zeros(numUAV, 1, (T_sim-1)/dt);
 posFir1StoreX(:,1,1) = pos_est_fire1(:,1);
+
+posFir1StoreY = zeros(numUAV, 1, (T_sim-1)/dt);
+posFir1StoreY(:,1,1) = pos_est_fire1(:,2);
+
+sigmaFir1Stor = zeros(numUAV, 1, (T_sim-1)/dt);
+sigmaFir1Stor(:,1,1) = sigma_est_fire1(:,1);
 
 %% Simulation
 if DO_SIMULATION
@@ -189,25 +201,26 @@ if DO_SIMULATION
         % Verify if the wanted distance from the target is reached
         for i = 1:numUAV
             dist_inc1(i) = pdist2(pos_est_fire1(i,:), states(i,1:2));
-    
+            inc_threshold1(i) = sigma_est_fire1(i,1);
+            
             % If the drone is close to a fire and its objective is 1 (heading to fire)
-            if dist_inc1(i) <= inc_threshold1  && objective(i) == 1
+            if dist_inc1(i) <= inc_threshold1(i) && objective(i) == 1
 
                 objective(i) = 2; % Change objective to 2 (heading to refill water)
            
                 pos_est_fire1(i,:) = pos_fire1_mov(t);
+                sigma_est_fire1(i,1) = sigma_fire1_mov(t);
                 LastMeas(i) = count;
                 
                 % Definition of Q
                 for j = 1:numUAV
                     if j ~= i
                         Qc(:,j) = 1/LastMeas(j) + 0.2 * rand(1,numUAV);
-
                     end
                 end
                 
                 for s = 1:numUAV
-                    Qc(s,i) = 1 - (sum(Qc(s,:))-Qc(s,i));
+                    Qc(s,i) = 1 - (sum(Qc(s,:)) - Qc(s,i));
                 end
 
 
@@ -223,13 +236,20 @@ if DO_SIMULATION
 
 
         % Consensus algorithm
-        disp(Qc);
+        % disp(Qc);
+        % We use the same matrix Q for both the coordinates
         pos_est_fire1(:,1) = Qc * pos_est_fire1(:,1);
+        pos_est_fire1(:,2) = Qc * pos_est_fire1(:,2);
+        sigma_est_fire1(:,1) = Qc * sigma_est_fire1(:,1);
+
         posFir1StoreX(:,1,count+1) = pos_est_fire1(:,1);
+        posFir1StoreY(:,1,count+1) = pos_est_fire1(:,2);
+        sigmaFir1Stor(:,1,count+1) = sigma_est_fire1(:,1);
 
     
         % Compute Voronoi tessellation and velocities
-        [areas, centroids_est, control_est] = voronoi_function_FW(numUAV, dimgrid, states, Kp_z, Kp, Ka, Ke, G_fire, G_water, scenario, objective);
+        [areas, centroids_est, control_est] = voronoi_function_FW(numUAV, dimgrid, states, Kp_z, Kp, Ka, Ke, pos_est_fire1, pos_fire2, ...
+                                                                  sigma_est_fire1, sigma_fire2, G_water, scenario, objective);
     
         % Impose a maximum velocity
         % The linear straight velocty has also a minimum velocity since we are considering Fixed wing UAV 
@@ -270,7 +290,9 @@ if DO_SIMULATION
         % real and estimated   
         if PLOT_ITERATIVE_SIMULATION
 
-            plotSimulation_function(states, states_est, centroids_est, numUAV, dimgrid, x_fire1, y_fire1, sigma_fire1, x_fire2, y_fire2, sigma_fire2, x_water, y_water, sigma_water,dim_UAV, 3);
+            curr_fire1_pos = pos_fire1_mov(t);
+            curr_fire1_sig = sigma_fire1_mov(t);
+            plotSimulation_function(states, states_est, centroids_est, numUAV, dimgrid, pos_est_fire1, curr_fire1_pos(1), curr_fire1_pos(2), sigma_est_fire1, curr_fire1_sig, x_fire2, y_fire2, sigma_fire2, x_water, y_water, sigma_water,dim_UAV, 3);
 
         end
 
@@ -337,12 +359,35 @@ if DO_SIMULATION
     if PLOT_CONSENSUS 
 
         figure(20)
+        subplot(3,1,1);
+        xlabel('Time');
+        ylabel('X Coordinate');
+        title('Estimated X Coordinate of fire 1');
         hold on;
-
         for k = 1:numUAV
-
             plot(squeeze(posFir1StoreX(k,1,:)));
+        end
+        hold off;
 
+        figure(20)
+        subplot(3,1,2);
+        xlabel('Time');
+        ylabel('Y Coordinate');
+        title('Estimated Y Coordinate of fire 1');
+        hold on;
+        for k = 1:numUAV
+            plot(squeeze(posFir1StoreX(k,1,:)));
+        end
+        hold off;
+
+        figure(20)
+        subplot(3,1,3);
+        xlabel('Time');
+        ylabel('Exstension');
+        title('Estimated Extension of fire 1');
+        hold on;
+        for k = 1:numUAV
+            plot(squeeze(sigmaFir1Stor(k,1,:)));
         end
         hold off;
     end

@@ -1,4 +1,4 @@
-function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV,dimgrid, states, Kp_z, Kp, Ka, Ke, G_fire, G_water, scenario, objective)
+function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, states, Kp_z, Kp, Ka, Ke, pos_est_fire1, pos_fire2, sigma_est_fire1, sigma_fire2, G_water, scenario, objective)
 
     % Crea una griglia di punti con le dimensioni specificate da dimgrid
     [X, Y] = meshgrid(1:dimgrid(1), 1:dimgrid(2));
@@ -18,6 +18,8 @@ function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV,dimgrid, st
 
     % Calcola le aree e i centroidi pesati per ogni punto
     for i = 1:numUAV
+
+        G_fire = fires_dens_function(dimgrid, pos_est_fire1(i,:), pos_fire2, sigma_est_fire1(i,1), sigma_fire2);
 
         % Estrai i punti della regione assegnata al drone i
         region_points = voronoi_grid(minimum_indices == i, :); % Punti della regione
