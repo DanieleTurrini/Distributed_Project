@@ -5,7 +5,7 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;
-T_sim = 5;
+T_sim = 3;
 scenario = 1;
 
 DO_SIMULATION = true;
@@ -16,13 +16,13 @@ PLOT_CONSENSUS = true;
 
 %% Vehicles Parameters 
 
-vel_lin_max = 200;  % Maximum linear velocity
-vel_lin_min = 30;   % Minimum linear velocity
+vel_lin_max = 600;  % Maximum linear velocity
+vel_lin_min = 50;   % Minimum linear velocity
 vel_lin_z_max = 50; % Maximum linear velocity along z
 vel_ang_max = 30;  % Maximum angular velocity
 dim_UAV = 3;  % Dimension of the UAV
 numUAV = 5;   % Number of UAV
-Kp_z = 10;  % Proportional gain for the linear velocity along z
+Kp_z = 60;  % Proportional gain for the linear velocity along z
 Kp = 50;   % Proportional gain for the linear velocity  
 Ka = 15;   % Proportional gain for the angular velocity 
 Ke = 10;   % Additional gain for the angular velocity 
@@ -42,8 +42,6 @@ objective = ones(numUAV,1);     % -> objective = 1 : the UAV is filled with
                                 % going to refill
                                 % (we assume every one empty at the beginning)
 
-objective_est = ones(numUAV,1); % the objective of the estimated positions
-
 % Dynamics
 
 fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
@@ -54,7 +52,7 @@ fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
 %% Kalman Filter Parameters
 
 % Jacobian of the state model
-% !!! WE ASSUME THE CONTROL AS INDIPENDENT FROM THE STATE -> NOT TRUE !!!
+% !!! WE ASSUME THE CONTROL AS INDIPENDENT FROM THE STATE -> we put uncertanty in the control !!!
 A = @(u, theta, deltat) [1, 0,    0, -u(1) * sin(theta) * deltat;
                          0, 1,    0,  u(2) * cos(theta) * deltat;
                          0, 0,    1,                           0;
@@ -79,7 +77,7 @@ meas_freq_GPS = 10;
 meas_freq_ultr = 2;
 meas_freq_gyr = 1;
 
-std_gps = 2; % Standard deviation of the GPS
+std_gps = 3; % Standard deviation of the GPS
 std_ultrasonic = 2; % Standard deviation of the ultrasonic sensor
 std_gyro = 0.5; % Standard deviation of the gyroscope
 R = diag([std_gps^2, std_gps^2, std_ultrasonic^2, std_gyro^2]); % Covariance of the measurement noise
@@ -111,28 +109,28 @@ y_fire1 = 400;
 x_fire2 = 450;
 y_fire2 = 50;
 
-pos_fire1 = [x_fire1 , y_fire1];
-pos_fire1_mov = @(s) [x_fire1 - 30 * s + 30 , y_fire1 - 15 * s + 15]; % t start from 1
+pos_fire1_start = [x_fire1 , y_fire1];
+pos_fire1_mov = @(s) [x_fire1 - 30 * (s - 1) , y_fire1 - 15 * (s - 1)]; % t start from 1
 
 pos_fire2 = [x_fire2, y_fire2];
 
-sigma_fire1 = 40;   % Standard deviation of the first fire
-                    % (correspond to the extention of the fire)
+sigma_fire1_start = 40;   % Standard deviation of the first fire
+                          % (correspond to the extention of the fire)
 
-sigma_fire1_mov = @(t) 40 - 5 * t + 5;
+sigma_fire1_mov = @(t) 40 - 5 * (t - 1);
 
 sigma_fire2 = 15;   % Standard deviation of the second fire
                     % (correspond to the extention of the fire)
 
-inc_threshold1 = sigma_fire1;  % Distance that has to be reach from the fire 1 
+inc_threshold1 = sigma_fire1_start;  % Distance that has to be reach from the fire 1 
 inc_threshold2 = sigma_fire2;  % Distance that has to be reach from the fire 2
 
 pos_est_fire1 = zeros(numUAV,2);
 sigma_est_fire1 = zeros(numUAV,1);
 
 for i = 1:numUAV
-    pos_est_fire1(i,:) = pos_fire1_mov(1); % Initialize the positions of the fire 1
-    sigma_est_fire1(i,1) = sigma_fire1_mov(1);
+    pos_est_fire1(i,:) = pos_fire1_mov(1);          % Initialize the estimated positions of fire 1
+    sigma_est_fire1(i,1) = sigma_fire1_mov(1);      % Initialize the estimated extension of fire 1
 end
 
 %% Water Parameters
@@ -140,15 +138,16 @@ end
 % Water Positions
 x_water = 50;
 y_water = 50;
+
 pos_water = [x_water, y_water];
 
 sigma_water = 60;
 wat_threshold = sigma_water;   % Distance that has to be reach from the water source to refill
 
 % Density Functions for the fires and the water
-[G_fire,G_water] = objective_density_functions(dimgrid, pos_fire1_mov, pos_fire2, pos_water, sigma_fire1, sigma_fire2, sigma_water,0, PLOT_DENSITY_FUNCTIONS);
+[G_fire,G_water] = objective_density_functions(dimgrid, pos_fire1_mov, pos_fire2, pos_water, sigma_fire1_start, sigma_fire2, sigma_water,0, PLOT_DENSITY_FUNCTIONS);
 
-plot_flight_surface();
+[Xf, Yf, Zf] = plot_flight_surface();
 
 trajectories = zeros(numUAV, 4, (T_sim-1)/dt);
 trajectories_est = zeros(numUAV, 4, (T_sim-1)/dt);
@@ -158,16 +157,19 @@ P_trace = zeros(numUAV,(T_sim-1)/dt);
 
 %% Consensus Parameters
 
-LastMeas = ones(numUAV,1) * 1000; 
-Qc = ones(numUAV) * 1/numUAV;
+sensor_range = 100;
 
-posFir1StoreX = zeros(numUAV, 1, (T_sim-1)/dt);
+LastMeas = ones(numUAV,1) * 1000;               % At the beginning no one UAV has done a measurement,
+                                                % so we initialize the time of last measure = 1000
+Qc = ones(numUAV) * 1/numUAV;                   % Initialization of matrix Q
+
+posFir1StoreX = zeros(numUAV, 1, (T_sim-1)/dt); % Trajectory of X coordinate of fire 1
 posFir1StoreX(:,1,1) = pos_est_fire1(:,1);
 
-posFir1StoreY = zeros(numUAV, 1, (T_sim-1)/dt);
+posFir1StoreY = zeros(numUAV, 1, (T_sim-1)/dt); % Trajectory of Y coordinate of fire 1
 posFir1StoreY(:,1,1) = pos_est_fire1(:,2);
 
-sigmaFir1Stor = zeros(numUAV, 1, (T_sim-1)/dt);
+sigmaFir1Stor = zeros(numUAV, 1, (T_sim-1)/dt); % Behavior of the extension of fire 1
 sigmaFir1Stor(:,1,1) = sigma_est_fire1(:,1);
 
 %% Simulation
@@ -191,31 +193,37 @@ if DO_SIMULATION
         
 
         % Compute the distances from fires and water source for each drone
+
+        dist_inc1 = zeros(numUAV,1); 
+        dist_real_inc1 = zeros(numUAV,1);
     
-        % dist_inc1 = pdist2(pos_fire1, states(:,1:2)); % Distance to the first fire
-        dist_inc1 = zeros(numUAV,2);
-    
-        dist_inc2 = pdist2(pos_fire2, states(:,1:2)); % Distance to the second fire
-        dist_wat  = pdist2(pos_water, states(:,1:2)); % Distance to the water source
-        
+        dist_inc2 = pdist2(pos_fire2, states_est(:,1:2)); % Distance to the second fire
+        dist_wat  = pdist2(pos_water, states_est(:,1:2)); % Distance to the water source
+
+       
+        % If the distatnce bettween the UAV and the Real fire is small, the
+        % sensors see the new position and extension
+
+        dist_real_inc1(:,1) = pdist2(pos_fire1_mov(t),states(:,1:2)); % Here we use the real posititon since we are 
+                                                                      % considering if the sensor are able to detect the fire
+
+
         % Verify if the wanted distance from the target is reached
         for i = 1:numUAV
-            dist_inc1(i) = pdist2(pos_est_fire1(i,:), states(i,1:2));
-            inc_threshold1(i) = sigma_est_fire1(i,1);
-            
-            % If the drone is close to a fire and its objective is 1 (heading to fire)
-            if dist_inc1(i) <= inc_threshold1(i) && objective(i) == 1
 
-                objective(i) = 2; % Change objective to 2 (heading to refill water)
-           
-                pos_est_fire1(i,:) = pos_fire1_mov(t);
-                sigma_est_fire1(i,1) = sigma_fire1_mov(t);
+            dist_inc1(i) = pdist2(pos_est_fire1(i,:), states_est(i,1:2));
+            inc_threshold1(i) = sigma_est_fire1(i,1);
+
+            if dist_real_inc1(i) <= sensor_range && objective(i) == 1
+
+                pos_est_fire1(i,:) = pos_fire1_mov(t) + 10 * rand(1,1);
+                sigma_est_fire1(i,1) = sigma_fire1_mov(t) + 2 * rand(1,1);
                 LastMeas(i) = count;
                 
                 % Definition of Q
                 for j = 1:numUAV
                     if j ~= i
-                        Qc(:,j) = 1/LastMeas(j) + 0.2 * rand(1,numUAV);
+                        Qc(:,j) = 2*1/LastMeas(j) + 0.2 * rand(1,numUAV);
                     end
                 end
                 
@@ -223,21 +231,30 @@ if DO_SIMULATION
                     Qc(s,i) = 1 - (sum(Qc(s,:)) - Qc(s,i));
                 end
 
+            end
+            
+            % If the drone is close to a fire and its objective is 1 (heading to fire)
+            if dist_inc1(i) <= inc_threshold1(i) && objective(i) == 1
+
+                objective(i) = 2; % Change objective to 2 (heading to refill water)
 
             elseif dist_inc2(i) <= inc_threshold2 && objective(i) == 1
+
                 objective(i) = 2; % Change objective to 2 (heading to refill water)
+
             end
 
             % If the drone is close to the water source and its objective is 2 (heading to refill)
             if dist_wat(i) <= wat_threshold && objective(i) == 2
+
                 objective(i) = 1; % Change objective to 1 (heading to fire)
+
             end
         end
 
-
         % Consensus algorithm
-        % disp(Qc);
-        % We use the same matrix Q for both the coordinates
+        % We use the same matrix Q for both the coordinates and the extension
+
         pos_est_fire1(:,1) = Qc * pos_est_fire1(:,1);
         pos_est_fire1(:,2) = Qc * pos_est_fire1(:,2);
         sigma_est_fire1(:,1) = Qc * sigma_est_fire1(:,1);
@@ -246,11 +263,10 @@ if DO_SIMULATION
         posFir1StoreY(:,1,count+1) = pos_est_fire1(:,2);
         sigmaFir1Stor(:,1,count+1) = sigma_est_fire1(:,1);
 
-    
+
         % Compute Voronoi tessellation and velocities
         [areas, centroids_est, control_est] = voronoi_function_FW(numUAV, dimgrid, states, Kp_z, Kp, Ka, Ke, pos_est_fire1, pos_fire2, ...
-                                                                  sigma_est_fire1, sigma_fire2, G_water, scenario, objective);
-    
+                                                                  sigma_est_fire1, sigma_fire2, G_water, height_flight, scenario, objective);
         % Impose a maximum velocity
         % The linear straight velocty has also a minimum velocity since we are considering Fixed wing UAV 
         control_est(:,1) = sign(control_est(:,1)) .* max(min(abs(control_est(:,1)), vel_lin_max), vel_lin_min); % Linear velocity 
@@ -259,15 +275,14 @@ if DO_SIMULATION
 
 
         % Model Simulation - REAL 
-        % we use to control the real model the velocities computed using
-        % the estimated states (as it will be in real applications)
 
         for k = 1:numUAV
-            states(k,:) = fun(states(k,:), control_est(k,:), dt);
+            states(k,:) = fun(states(k,:), control_est(k,:), dt);    % we use to control the real model the velocities computed using
+                                                                     % the estimated states (as it will be in real applications)
             trajectories(k,:,count) = states(k,:);
+
         end
 
-        
         % Extended Kalman Filter
         measure = (H * states' + [std_gps * randn(2, numUAV); ...
                                   std_ultrasonic * randn(1, numUAV); ...
@@ -292,10 +307,11 @@ if DO_SIMULATION
 
             curr_fire1_pos = pos_fire1_mov(t);
             curr_fire1_sig = sigma_fire1_mov(t);
-            plotSimulation_function(states, states_est, centroids_est, numUAV, dimgrid, pos_est_fire1, curr_fire1_pos(1), curr_fire1_pos(2), sigma_est_fire1, curr_fire1_sig, x_fire2, y_fire2, sigma_fire2, x_water, y_water, sigma_water,dim_UAV, 3);
+            plotSimulation_function(states, states_est, centroids_est, numUAV, dimgrid, pos_est_fire1, curr_fire1_pos(1), ...
+                                    curr_fire1_pos(2), sigma_est_fire1, curr_fire1_sig, x_fire2, y_fire2, sigma_fire2, ...
+                                    x_water, y_water, sigma_water, Xf, Yf, Zf, dim_UAV, 3);
 
         end
-
 
     end
 

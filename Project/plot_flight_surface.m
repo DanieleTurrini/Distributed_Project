@@ -1,4 +1,4 @@
-function plot_flight_surface()
+function [X, Y, Z] = plot_flight_surface()
     % Define grid range
     x_range = linspace(0, 500, 200); % 200 points for smoothness
     y_range = linspace(0, 500, 200);

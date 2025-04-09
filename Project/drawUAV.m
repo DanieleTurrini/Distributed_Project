@@ -9,5 +9,8 @@ function drawUAV(X,Y,Z,Theta,dim,col)
     line([X+s*cos(Theta), X+s*cos(Theta)],[Y+s*sin(Theta), Y+s*sin(Theta)],[Z,Z],'Color',col);
     %Centre of the axis.
     line([X, X],[Y, Y],[Z,Z],'Color',col);
+    
+    % Draw a vertical line from the ground (0) to the UAV (Z)
+    line([X, X], [Y, Y], [0, Z], 'Color', col, 'LineStyle', '--', 'LineWidth', 0.5);
      
 end
