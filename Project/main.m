@@ -5,7 +5,7 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;
-T_sim = 3;
+T_sim = 4;
 scenario = 1;
 
 DO_SIMULATION = true;
@@ -145,7 +145,7 @@ sigma_water = 60;
 wat_threshold = sigma_water;   % Distance that has to be reach from the water source to refill
 
 % Density Functions for the fires and the water
-[G_fire,G_water] = objective_density_functions(dimgrid, pos_fire1_mov, pos_fire2, pos_water, sigma_fire1_start, sigma_fire2, sigma_water,0, PLOT_DENSITY_FUNCTIONS);
+[G_fire,G_water] = objective_density_functions(dimgrid, pos_fire1_mov, pos_fire2, pos_water, sigma_fire1_start, sigma_fire2, sigma_water, 0, PLOT_DENSITY_FUNCTIONS);
 
 [Xf, Yf, Zf] = plot_flight_surface();
 
@@ -159,7 +159,7 @@ P_trace = zeros(numUAV,(T_sim-1)/dt);
 
 sensor_range = 100;
 
-LastMeas = ones(numUAV,1) * 1000;               % At the beginning no one UAV has done a measurement,
+LastMeas = ones(numUAV,1) * 100;               % At the beginning no one UAV has done a measurement,
                                                 % so we initialize the time of last measure = 1000
 Qc = ones(numUAV) * 1/numUAV;                   % Initialization of matrix Q
 
@@ -172,6 +172,8 @@ posFir1StoreY(:,1,1) = pos_est_fire1(:,2);
 sigmaFir1Stor = zeros(numUAV, 1, (T_sim-1)/dt); % Behavior of the extension of fire 1
 sigmaFir1Stor(:,1,1) = sigma_est_fire1(:,1);
 
+posFir1StoreRealX = zeros(1, 2, (T_sim-1)/dt);
+
 %% Simulation
 if DO_SIMULATION
     
@@ -179,6 +181,9 @@ if DO_SIMULATION
     for t = 1:dt:T_sim
 
         count = count + 1;
+        LastMeas = LastMeas + 1;
+
+        posFir1StoreRealX(1,:,count) = pos_fire1_mov(t);
         
         % % Control algorithm - IDEAL
         % % (control computed considering the real positions)
@@ -196,6 +201,7 @@ if DO_SIMULATION
 
         dist_inc1 = zeros(numUAV,1); 
         dist_real_inc1 = zeros(numUAV,1);
+        meas_fire1 = zeros(numUAV,1); 
     
         dist_inc2 = pdist2(pos_fire2, states_est(:,1:2)); % Distance to the second fire
         dist_wat  = pdist2(pos_water, states_est(:,1:2)); % Distance to the water source
@@ -214,45 +220,47 @@ if DO_SIMULATION
             dist_inc1(i) = pdist2(pos_est_fire1(i,:), states_est(i,1:2));
             inc_threshold1(i) = sigma_est_fire1(i,1);
 
-            if dist_real_inc1(i) <= sensor_range && objective(i) == 1
-
-                pos_est_fire1(i,:) = pos_fire1_mov(t) + 10 * rand(1,1);
-                sigma_est_fire1(i,1) = sigma_fire1_mov(t) + 2 * rand(1,1);
-                LastMeas(i) = count;
+            if dist_real_inc1(i) <= sensor_range && objective(i) == 1 && meas_fire1(i) ~= 1
                 
-                % Definition of Q
+                % Meaurement
+                pos_est_fire1(i,:) = pos_fire1_mov(t) + 1 * rand(1,1);
+                sigma_est_fire1(i,1) = sigma_fire1_mov(t) + 1 * rand(1,1);
+
+                LastMeas(i) = 1;  
+                invLastMeas = 1 ./ LastMeas;
+                invSumLastMeas = sum(invLastMeas);
+
                 for j = 1:numUAV
-                    if j ~= i
-                        Qc(:,j) = 2*1/LastMeas(j) + 0.2 * rand(1,numUAV);
-                    end
-                end
-                
-                for s = 1:numUAV
-                    Qc(s,i) = 1 - (sum(Qc(s,:)) - Qc(s,i));
+
+                    Qc(:,j) = (1 /  LastMeas(j) ) / ( invSumLastMeas );
+
                 end
 
+                meas_fire1(i) = 1;
             end
             
             % If the drone is close to a fire and its objective is 1 (heading to fire)
             if dist_inc1(i) <= inc_threshold1(i) && objective(i) == 1
 
                 objective(i) = 2; % Change objective to 2 (heading to refill water)
-
+                meas_fire1(i) = 0;
             elseif dist_inc2(i) <= inc_threshold2 && objective(i) == 1
 
                 objective(i) = 2; % Change objective to 2 (heading to refill water)
-
+                meas_fire1(i) = 0;
             end
 
             % If the drone is close to the water source and its objective is 2 (heading to refill)
             if dist_wat(i) <= wat_threshold && objective(i) == 2
 
                 objective(i) = 1; % Change objective to 1 (heading to fire)
-
+                meas_fire1(i) = 0;
             end
+
         end
 
         % Consensus algorithm
+        disp(Qc);
         % We use the same matrix Q for both the coordinates and the extension
 
         pos_est_fire1(:,1) = Qc * pos_est_fire1(:,1);
@@ -380,6 +388,7 @@ if DO_SIMULATION
         ylabel('X Coordinate');
         title('Estimated X Coordinate of fire 1');
         hold on;
+
         for k = 1:numUAV
             plot(squeeze(posFir1StoreX(k,1,:)));
         end
@@ -391,6 +400,7 @@ if DO_SIMULATION
         ylabel('Y Coordinate');
         title('Estimated Y Coordinate of fire 1');
         hold on;
+
         for k = 1:numUAV
             plot(squeeze(posFir1StoreX(k,1,:)));
         end
