@@ -5,7 +5,7 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;
-T_sim = 4;
+T_sim = 2;
 scenario = 1;
 
 DO_SIMULATION = true;
@@ -157,10 +157,16 @@ P_trace = zeros(numUAV,(T_sim-1)/dt);
 
 %% Consensus Parameters
 
-sensor_range = 100;
+sensor_range = 70;
+meas_fire1 = zeros(numUAV,1);
 
-LastMeas = ones(numUAV,1) * 100;               % At the beginning no one UAV has done a measurement,
-                                                % so we initialize the time of last measure = 1000
+% Each drone has an estimate of the measurement time of the other drones (we add some uncertanty)
+LastMeas = ones(numUAV,numUAV) + 6 * rand(numUAV,numUAV) - 3;           % At the beginning no one UAV has done a measurement,
+                                                                              % so we initialize the time of last measure = 1000
+
+invLastMeas = ones(numUAV,numUAV);
+invSumLastMeas = ones(1,numUAV);
+ 
 Qc = ones(numUAV) * 1/numUAV;                   % Initialization of matrix Q
 
 posFir1StoreX = zeros(numUAV, 1, (T_sim-1)/dt); % Trajectory of X coordinate of fire 1
@@ -172,7 +178,8 @@ posFir1StoreY(:,1,1) = pos_est_fire1(:,2);
 sigmaFir1Stor = zeros(numUAV, 1, (T_sim-1)/dt); % Behavior of the extension of fire 1
 sigmaFir1Stor(:,1,1) = sigma_est_fire1(:,1);
 
-posFir1StoreRealX = zeros(1, 2, (T_sim-1)/dt);
+posFir1StoreReal = zeros(1, 2, (T_sim-1)/dt);
+sigmaFir1StoreReal = zeros(1, 1, (T_sim-1)/dt);
 
 %% Simulation
 if DO_SIMULATION
@@ -183,7 +190,8 @@ if DO_SIMULATION
         count = count + 1;
         LastMeas = LastMeas + 1;
 
-        posFir1StoreRealX(1,:,count) = pos_fire1_mov(t);
+        posFir1StoreReal(1,:,count) = pos_fire1_mov(t);
+        sigmaFir1StoreReal(1,:,count) = sigma_fire1_mov(t);
         
         % % Control algorithm - IDEAL
         % % (control computed considering the real positions)
@@ -201,18 +209,15 @@ if DO_SIMULATION
 
         dist_inc1 = zeros(numUAV,1); 
         dist_real_inc1 = zeros(numUAV,1);
-        meas_fire1 = zeros(numUAV,1); 
     
         dist_inc2 = pdist2(pos_fire2, states_est(:,1:2)); % Distance to the second fire
         dist_wat  = pdist2(pos_water, states_est(:,1:2)); % Distance to the water source
-
        
         % If the distatnce bettween the UAV and the Real fire is small, the
         % sensors see the new position and extension
 
         dist_real_inc1(:,1) = pdist2(pos_fire1_mov(t),states(:,1:2)); % Here we use the real posititon since we are 
                                                                       % considering if the sensor are able to detect the fire
-
 
         % Verify if the wanted distance from the target is reached
         for i = 1:numUAV
@@ -223,20 +228,26 @@ if DO_SIMULATION
             if dist_real_inc1(i) <= sensor_range && objective(i) == 1 && meas_fire1(i) ~= 1
                 
                 % Meaurement
-                pos_est_fire1(i,:) = pos_fire1_mov(t) + 1 * rand(1,1);
-                sigma_est_fire1(i,1) = sigma_fire1_mov(t) + 1 * rand(1,1);
+                pos_est_fire1(i,:) = pos_fire1_mov(t);
+                sigma_est_fire1(i,1) = sigma_fire1_mov(t);
 
-                LastMeas(i) = 1;  
+                LastMeas(i,:) = 1 + 5 * rand(1,numUAV);  
                 invLastMeas = 1 ./ LastMeas;
-                invSumLastMeas = sum(invLastMeas);
 
                 for j = 1:numUAV
 
-                    Qc(:,j) = (1 /  LastMeas(j) ) / ( invSumLastMeas );
+                    invSumLastMeas(j) = sum(invLastMeas(:,j));
+
+                    for k = 1:numUAV
+
+                        Qc(j,k) = (invLastMeas(k,j)) / ( invSumLastMeas(j) );
+
+                    end
 
                 end
 
                 meas_fire1(i) = 1;
+
             end
             
             % If the drone is close to a fire and its objective is 1 (heading to fire)
@@ -388,6 +399,7 @@ if DO_SIMULATION
         ylabel('X Coordinate');
         title('Estimated X Coordinate of fire 1');
         hold on;
+        plot(squeeze(posFir1StoreReal(1,1,:)),'--');
 
         for k = 1:numUAV
             plot(squeeze(posFir1StoreX(k,1,:)));
@@ -400,9 +412,10 @@ if DO_SIMULATION
         ylabel('Y Coordinate');
         title('Estimated Y Coordinate of fire 1');
         hold on;
+        plot(squeeze(posFir1StoreReal(1,2,:)),'--');
 
         for k = 1:numUAV
-            plot(squeeze(posFir1StoreX(k,1,:)));
+            plot(squeeze(posFir1StoreY(k,1,:)));
         end
         hold off;
 
@@ -412,6 +425,8 @@ if DO_SIMULATION
         ylabel('Exstension');
         title('Estimated Extension of fire 1');
         hold on;
+        plot(squeeze(sigmaFir1StoreReal(1,1,:)),'--');
+
         for k = 1:numUAV
             plot(squeeze(sigmaFir1Stor(k,1,:)));
         end

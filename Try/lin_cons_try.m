@@ -9,7 +9,7 @@ count = 0;
 freq = 50;
 LastMeas = ones(num,1);
 
-turn = 1;
+turn = 3;
 
 Q = [0.8 0.1 0.1;
       0.8 0.15 0.05;
@@ -40,7 +40,7 @@ for i = 1:dt:T
                 Q(k,3) = 1/LastMeas(3) + rand(1,1) * 0.3;
                 Q(k,1) = 1 - Q(k,2) - Q(k,3);
             end
-            
+
         elseif turn == 2
 
             LastMeas(2) = 1;
