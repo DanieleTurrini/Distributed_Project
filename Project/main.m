@@ -18,11 +18,11 @@ PLOT_CONSENSUS = true;
 
 vel_lin_max = 600;  % Maximum linear velocity
 vel_lin_min = 50;   % Minimum linear velocity
-vel_lin_z_max = 50; % Maximum linear velocity along z
+vel_lin_z_max = 600; % Maximum linear velocity along z
 vel_ang_max = 30;  % Maximum angular velocity
 dim_UAV = 3;  % Dimension of the UAV
 numUAV = 5;   % Number of UAV
-Kp_z = 60;  % Proportional gain for the linear velocity along z
+Kp_z = 100;  % Proportional gain for the linear velocity along z
 Kp = 50;   % Proportional gain for the linear velocity  
 Ka = 15;   % Proportional gain for the angular velocity 
 Ke = 10;   % Additional gain for the angular velocity 
@@ -228,8 +228,8 @@ if DO_SIMULATION
             if dist_real_inc1(i) <= sensor_range && objective(i) == 1 && meas_fire1(i) ~= 1
                 
                 % Meaurement
-                pos_est_fire1(i,:) = pos_fire1_mov(t);
-                sigma_est_fire1(i,1) = sigma_fire1_mov(t);
+                pos_est_fire1(i,:) = pos_fire1_mov(t) + 10 * rand(1,1) - 5;
+                sigma_est_fire1(i,1) = sigma_fire1_mov(t) + 4 * rand(1,1) - 2;
 
                 LastMeas(i,:) = 1 + 5 * rand(1,numUAV);  
                 invLastMeas = 1 ./ LastMeas;

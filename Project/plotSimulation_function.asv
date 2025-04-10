@@ -3,7 +3,7 @@ function plotSimulation_function(states, states_est, centroids_est, numUAV, dimg
 
     figure(numfig); clf;
     subplot(1,2,1);
-    set(gcf, 'Position', [0, 100, 1400, 600]); % Imposta la dimensione della figura per adattarsi meglio allo schermo
+    set(gcf, 'Position', [50, 100, 1300, 600]); % Imposta la dimensione della figura per adattarsi meglio allo schermo
     theta = linspace(0, 2 * pi, 100); % Parametro angolare precomputato
     r = sigma_water / 2;
     x_circle = r * cos(theta) + x_water;
@@ -25,7 +25,7 @@ function plotSimulation_function(states, states_est, centroids_est, numUAV, dimg
 
         % Draw the UAV pose
         drawUAV(states(i, 1), states(i, 2), states(i, 3), states(i, 4), dim_UAV,'k');
-        % drawUAV(states_est(i, 1), states_est(i, 2), states_est(i, 3), states_est(i, 4), dim_UAV,'g');
+        drawUAV(states_est(i, 1), states_est(i, 2), states_est(i, 3), states_est(i, 4), dim_UAV,'g');
         
         % Plot estimated positions of fire
         plot3(pos_est_fire1(i,1), pos_est_fire1(i,2), flight_surface(pos_est_fire1(i,1), pos_est_fire1(i,2), 1), 'x','MarkerSize', sigma_est_fire1(i,1));
@@ -33,8 +33,8 @@ function plotSimulation_function(states, states_est, centroids_est, numUAV, dimg
     end
 
     % Plot dei fuochi
-    plot3(x_fire1, y_fire1, flight_surface(x_fire1, y_fire1, 1), 'x', 'Color', 'r', 'MarkerSize', curr_fire1_sig);
-    plot3(x_fire2, y_fire2, flight_surface(x_fire2, y_fire2, 1), 'x', 'Color', 'r', 'MarkerSize', sigma_fire2);
+    plot3(x_fire1, y_fire1, 0, 'x', 'Color', 'r', 'MarkerSize', curr_fire1_sig);
+    plot3(x_fire2, y_fire2, 0, 'x', 'Color', 'r', 'MarkerSize', sigma_fire2);
 
     % Plot dell'acqua
     plot3(x_circle, y_circle, z_circle, 'b', 'LineWidth', 2);
@@ -49,7 +49,7 @@ function plotSimulation_function(states, states_est, centroids_est, numUAV, dimg
     ylabel('Y Coordinate');
 
     hold on;
-    plot(x_fire1,y_fire1,'x','Color', 'r', 'MarkerSize', curr_fire1_sig)
+    plot3(x_fire1,y_fire1,'x','Color', 'r', 'MarkerSize', curr_fire1_sig)
     plot(x_fire2,y_fire2,'x','Color', 'r', 'MarkerSize', sigma_fire2)
     plot(x_water,y_water,'o','Color', 'b', 'MarkerSize', sigma_water)
 
@@ -59,7 +59,7 @@ function plotSimulation_function(states, states_est, centroids_est, numUAV, dimg
         drawUAV2D(states_est(i, 1), states_est(i, 2), states_est(i, 4), dim_UAV,'g');
 
         plot(centroids_est(i,1), centroids_est(i,2), 'x', 'Color', 'g');
-        plot(pos_est_fire1(i,1), pos_est_fire1(i,2), 'x','MarkerSize', sigma_est_fire1(i,1));
+        plot(pos_est_fire1(i,1), pos_est_fire1(i,2), 0, 'x','MarkerSize', sigma_est_fire1(i,1));
     end
 
     [vx_es, vy_es] = voronoi(states_est(:,1), states_est(:,2)); 
