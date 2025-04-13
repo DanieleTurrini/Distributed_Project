@@ -34,13 +34,14 @@ freq_takeOff = 10;
 n = 1;
 
 % Refill
-refill_time = 10;
+refill_time = 5;
 count_refill = zeros(numUAV,1);
+refill_control = zeros(numUAV,3);
 
 % Generate random starting positions for each point
 x = ones(numUAV,1) * 50;   % Random x coordinates
 y = ones(numUAV,1) * 250;  % Random y coordinates
-z = ones(numUAV,1) * 10;    % Start from ground
+z = zeros(numUAV,1);    % Start from ground
 theta = ones(numUAV,1) * (-pi/2);
 
 for i = 1:numUAV
@@ -155,7 +156,7 @@ y_water = 50;
 pos_water = [x_water, y_water];
 
 sigma_water = 60;
-wat_threshold = 40;   % Distance that has to be reach from the water source to refill
+wat_threshold = sigma_water;   % Distance that has to be reach from the water source to refill
 
 % Density Functions for the fires and the water
 [G_fire,G_water] = objective_density_functions(dimgrid, pos_fire1_mov, pos_fire2, pos_water, sigma_fire1_start, sigma_fire2, sigma_water, 0, PLOT_DENSITY_FUNCTIONS);
@@ -265,7 +266,8 @@ if DO_SIMULATION
             % If the drone is close to the water source and its objective is 2 (heading to refill)
             if dist_wat(i) <= wat_threshold && objective(i) == 2 && count_refill(i) == 0 
 
-                count_refill(i) = refill_time;
+                count_refill(i) = 5;
+                refill_control(i,:) = control_est(i,:);
 
             end
 
@@ -309,23 +311,26 @@ if DO_SIMULATION
 
         for k = 1:numUAV
 
+            % Model Simulation - REAL 
+            states(k,:) = fun(states(k,:), control_est(k,:), dt);    % we use to control the real model the velocities computed using
+                                                                     % the estimated states (as it will be in real applications)
+            trajectories(k,:,count) = states(k,:);
+
+
             % Refill control
             if count_refill(k) ~= 0
-                control_est(k,:) = [vel_lin_min + 70, 0, 0];
+    
+                control_est(k,:) = refill_control(k,:);
+                control_est(k,1) = vel_lin_min + 20;
+                control_est(k,3) = 0;
                 count_refill(k) = count_refill(k) - 1;
-            end
 
-            if count_refill(k) == 0 && dist_wat(k) <= wat_threshold
+            elseif count_refill(k) == 0 && dist_wat(i) <= wat_threshold
 
                 objective(k) = 1; % Change objective to 1 (heading to fire)
                 meas_fire1(k) = 0;
 
             end
-
-            % Model Simulation - REAL 
-            states(k,:) = fun(states(k,:), control_est(k,:), dt);    % we use to control the real model the velocities computed using
-                                                                     % the estimated states (as it will be in real applications)
-            trajectories(k,:,count) = states(k,:);
 
         end
 

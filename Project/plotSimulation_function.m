@@ -18,7 +18,9 @@ function plotSimulation_function(states, states_est, centroids_est, numUAV, dimg
     grid on;
     hold on;
     
-    surf(Xf, Yf, Zf, 'FaceColor', [0.4660 0.6740 0.1880], 'FaceAlpha', 0.5, 'EdgeColor', 'none');
+    surf(Xf, Yf, Zf, 'FaceColor', [0.4660 0.6740 0.1880], 'FaceAlpha', 0.9, 'EdgeColor', 'none');
+
+    contour3(Xf, Yf, Zf, 20, 'k');  % '20' = numero di livelli, 'k' = colore nero
 
     
     for i = 1:numUAV
@@ -33,8 +35,8 @@ function plotSimulation_function(states, states_est, centroids_est, numUAV, dimg
     end
 
     % Plot dei fuochi
-    plot3(x_fire1, y_fire1, flight_surface(x_fire1, y_fire1, 1), 'x', 'Color', 'r', 'MarkerSize', curr_fire1_sig);
-    plot3(x_fire2, y_fire2, flight_surface(x_fire2, y_fire2, 1), 'x', 'Color', 'r', 'MarkerSize', sigma_fire2);
+    plot3(x_fire1, y_fire1, flight_surface(x_fire1, y_fire1, 1), 'x', 'Color', 'r', 'MarkerSize', curr_fire1_sig, 'LineWidth', 2);
+    plot3(x_fire2, y_fire2, flight_surface(x_fire2, y_fire2, 1), 'x', 'Color', 'r', 'MarkerSize', sigma_fire2, 'LineWidth', 2);
 
     % Plot dell'acqua
     plot3(x_circle, y_circle, z_circle, 'b', 'LineWidth', 2);
