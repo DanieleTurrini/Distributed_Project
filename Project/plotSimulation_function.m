@@ -8,7 +8,7 @@ function plotSimulation_function(states, states_est, centroids_est, numUAV, dimg
     r = sigma_water / 2;
     x_circle = r * cos(theta) + x_water;
     y_circle = r * sin(theta) + y_water;
-    z_circle = zeros(size(theta));
+    z_circle = ones(size(theta)) * 5;
 
     axis([0 dimgrid(1) 0 dimgrid(2) 0 dimgrid(3)]);
     xlabel('X Coordinate');
@@ -30,13 +30,13 @@ function plotSimulation_function(states, states_est, centroids_est, numUAV, dimg
         % drawUAV(states_est(i, 1), states_est(i, 2), states_est(i, 3), states_est(i, 4), dim_UAV,'g');
         
         % Plot estimated positions of fire
-        plot3(pos_est_fire1(i,1), pos_est_fire1(i,2), flight_surface(pos_est_fire1(i,1), pos_est_fire1(i,2), 1), 'x','MarkerSize', sigma_est_fire1(i,1));
+        plot3(pos_est_fire1(i,1), pos_est_fire1(i,2), enviroment_surface(pos_est_fire1(i,1), pos_est_fire1(i,2), 1), 'x','MarkerSize', sigma_est_fire1(i,1));
         
     end
 
     % Plot dei fuochi
-    plot3(x_fire1, y_fire1, flight_surface(x_fire1, y_fire1, 1), 'x', 'Color', 'r', 'MarkerSize', curr_fire1_sig, 'LineWidth', 2);
-    plot3(x_fire2, y_fire2, flight_surface(x_fire2, y_fire2, 1), 'x', 'Color', 'r', 'MarkerSize', sigma_fire2, 'LineWidth', 2);
+    plot3(x_fire1, y_fire1, enviroment_surface(x_fire1, y_fire1, 1), 'x', 'Color', 'r', 'MarkerSize', curr_fire1_sig, 'LineWidth', 2);
+    plot3(x_fire2, y_fire2, enviroment_surface(x_fire2, y_fire2, 1), 'x', 'Color', 'r', 'MarkerSize', sigma_fire2, 'LineWidth', 2);
 
     % Plot dell'acqua
     plot3(x_circle, y_circle, z_circle, 'b', 'LineWidth', 2);

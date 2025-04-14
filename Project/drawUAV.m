@@ -11,6 +11,6 @@ function drawUAV(X,Y,Z,Theta,dim,col)
     line([X, X],[Y, Y],[Z,Z],'Color',col);
     
     % Draw a vertical line from the ground (0) to the UAV (Z)
-    line([X, X], [Y, Y], [flight_surface(X, Y, 1), Z], 'Color', col, 'LineStyle', ':', 'LineWidth', 0.5);
+    line([X, X], [Y, Y], [enviroment_surface(X, Y, 1), Z], 'Color', col, 'LineStyle', ':', 'LineWidth', 0.5);
      
 end

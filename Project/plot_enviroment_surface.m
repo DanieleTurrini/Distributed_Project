@@ -1,4 +1,4 @@
-function [X, Y, Z] = plot_flight_surface()
+function [X, Y, Z] = plot_enviroment_surface()
     % Define grid range
     x_range = linspace(0, 500, 200); % 200 points for smoothness
     y_range = linspace(0, 500, 200);
@@ -7,7 +7,7 @@ function [X, Y, Z] = plot_flight_surface()
     [X, Y] = meshgrid(x_range, y_range);
     
     % Compute height for each (X, Y)
-    Z = arrayfun(@(x, y) flight_surface(x, y, 1), X, Y);
+    Z = arrayfun(@(x, y) enviroment_surface(x, y, 1), X, Y);
     
     % Plot the surface
     figure;

@@ -7,25 +7,27 @@ clc;
 dt = 0.01;
 T_sim = 5;
 scenario = 1;
+tot_iter = (T_sim-1)/dt + 1;
 
 DO_SIMULATION = true;
-PLOT_DENSITY_FUNCTIONS = true;
-PLOT_TRAJECTORIES = true;
-PLOT_ITERATIVE_SIMULATION = true;
-PLOT_CONSENSUS = true;
+PLOT_DENSITY_FUNCTIONS = false;
+PLOT_TRAJECTORIES = false;
+PLOT_ITERATIVE_SIMULATION = false;
+PLOT_CONSENSUS = false;
+ANIMATION = true;
 
 %% Vehicles Parameters 
 
-vel_lin_max = 600;  % Maximum linear velocity
-vel_lin_min = 50;   % Minimum linear velocity
-vel_lin_z_max = 600; % Maximum linear velocity along z
-vel_ang_max = 30;  % Maximum angular velocity
+vel_lin_max = 600;  % Maximum linear velocity [m/s]
+vel_lin_min = 50;   % Minimum linear velocity [m/s]
+vel_lin_z_max = 400; % Maximum linear velocity along z [m/s]
+vel_ang_max = 30;  % Maximum angular velocity [rad/s]
 dim_UAV = 3;  % Dimension of the UAV
 numUAV = 5;   % Number of UAV
 Kp_z = 100;  % Proportional gain for the linear velocity along z
 Kp = 50;   % Proportional gain for the linear velocity  
 Ka = 15;   % Proportional gain for the angular velocity 
-Ke = 10;   % Additional gain for the angular velocity 
+Ke = 10;  % Additional gain for the angular velocity 
 height_flight = 30;   % Height of flight from the ground 
 
 % Take Off
@@ -34,13 +36,13 @@ freq_takeOff = 10;
 n = 1;
 
 % Refill
-refill_time = 10;
+refill_time = 20;
 count_refill = zeros(numUAV,1);
 
 % Generate random starting positions for each point
 x = ones(numUAV,1) * 50;   % Random x coordinates
 y = ones(numUAV,1) * 250;  % Random y coordinates
-z = ones(numUAV,1) * 10;    % Start from ground
+z = ones(numUAV,1) * 5;    % Start from ground
 theta = ones(numUAV,1) * (-pi/2);
 
 for i = 1:numUAV
@@ -50,10 +52,10 @@ end
 states = [x, y, z, theta];
 
 objective = ones(numUAV,1) * 2;     % -> objective = 1 : the UAV is filled with
-                                % water and is going to put out the fire
-                                % -> objective = 2 : the UAV is empty and is
-                                % going to refill
-                                % (we assume every one empty at the beginning)
+                                    % water and is going to put out the fire
+                                    % -> objective = 2 : the UAV is empty and is
+                                    % going to refill
+                                    % (we assume every one empty at the beginning)
 
 % Dynamics
 
@@ -160,13 +162,8 @@ wat_threshold = 40;   % Distance that has to be reach from the water source to r
 % Density Functions for the fires and the water
 [G_fire,G_water] = objective_density_functions(dimgrid, pos_fire1_mov, pos_fire2, pos_water, sigma_fire1_start, sigma_fire2, sigma_water, 0, PLOT_DENSITY_FUNCTIONS);
 
-[Xf, Yf, Zf] = plot_flight_surface();
+[Xf, Yf, Zf] = plot_enviroment_surface();
 
-trajectories = zeros(numUAV, 4, (T_sim-1)/dt);
-trajectories_est = zeros(numUAV, 4, (T_sim-1)/dt);
-
-% Save all the traces of P
-P_trace = zeros(numUAV,(T_sim-1)/dt);
 
 %% Consensus Parameters
 
@@ -174,25 +171,43 @@ sensor_range = 70;
 meas_fire1 = zeros(numUAV,1);
 
 % Each drone has an estimate of the measurement time of the other drones (we add some uncertanty)
-LastMeas = ones(numUAV,numUAV) + 6 * rand(numUAV,numUAV) - 3;           % At the beginning no one UAV has done a measurement,
-                                                                              % so we initialize the time of last measure = 1000
+LastMeas = ones(numUAV,numUAV) + 6 * rand(numUAV,numUAV) - 3;           % At the beginning no one UAV has done a measurement
 
 invLastMeas = ones(numUAV,numUAV);
 invSumLastMeas = ones(1,numUAV);
- 
-Qc = ones(numUAV) * 1/numUAV;                   % Initialization of matrix Q
 
-posFir1StoreX = zeros(numUAV, 1, (T_sim-1)/dt); % Trajectory of X coordinate of fire 1
+Qc = ones(numUAV) * 1/numUAV;                   % Initialization of matrix Q
+ 
+
+%% Save Matrices Declaration
+
+% Real Trajectories
+trajectories = zeros(numUAV, 4, (T_sim-1)/dt);
+
+% Estimated Trajectories
+trajectories_est = zeros(numUAV, 4, (T_sim-1)/dt);
+
+% Save all the traces of P
+P_trace = zeros(numUAV,(T_sim-1)/dt);
+
+% Centroids Trajectories
+centroids_est_stor = zeros(numUAV, 2, (T_sim-1)/dt);
+
+% Estimated Trajectory of X coordinate of fire 1
+posFir1StoreX = zeros(numUAV, 1, (T_sim-1)/dt); 
 posFir1StoreX(:,1,1) = pos_est_fire1(:,1);
 
-posFir1StoreY = zeros(numUAV, 1, (T_sim-1)/dt); % Trajectory of Y coordinate of fire 1
+% Estimated Trajectory of Y coordinate of fire 1
+posFir1StoreY = zeros(numUAV, 1, (T_sim-1)/dt);
 posFir1StoreY(:,1,1) = pos_est_fire1(:,2);
 
-sigmaFir1Stor = zeros(numUAV, 1, (T_sim-1)/dt); % Behavior of the extension of fire 1
+% Behavior of the extension of fire 1
+sigmaFir1Stor = zeros(numUAV, 1, (T_sim-1)/dt); 
 sigmaFir1Stor(:,1,1) = sigma_est_fire1(:,1);
 
+% Real Path of Fire 1
 posFir1StoreReal = zeros(1, 2, (T_sim-1)/dt);
-sigmaFir1StoreReal = zeros(1, 1, (T_sim-1)/dt);
+sigmaFir1StoreReal = zeros(1, (T_sim-1)/dt);
 
 %% Simulation
 if DO_SIMULATION
@@ -204,7 +219,7 @@ if DO_SIMULATION
         LastMeas = LastMeas + 1;
 
         posFir1StoreReal(1,:,count) = pos_fire1_mov(t);
-        sigmaFir1StoreReal(1,:,count) = sigma_fire1_mov(t);
+        sigmaFir1StoreReal(1,count) = sigma_fire1_mov(t);
 
         % Compute the distances from fires and water source for each drone
 
@@ -272,7 +287,7 @@ if DO_SIMULATION
         end
 
         % Consensus algorithm
-        disp(Qc);
+        % disp(Qc);
         % We use the same matrix Q for both the coordinates and the extension
 
         pos_est_fire1(:,1) = Qc * pos_est_fire1(:,1);
@@ -283,16 +298,16 @@ if DO_SIMULATION
         posFir1StoreY(:,1,count+1) = pos_est_fire1(:,2);
         sigmaFir1Stor(:,1,count+1) = sigma_est_fire1(:,1);
 
-
         % Compute Voronoi tessellation and velocities
         [areas, centroids_est, control_est] = voronoi_function_FW(numUAV, dimgrid, states, Kp_z, Kp, Ka, Ke, pos_est_fire1, pos_fire2, ...
                                                                   sigma_est_fire1, sigma_fire2, G_water, height_flight, scenario, objective);
+
+        
         % Impose a maximum velocity
         % The linear straight velocty has also a minimum velocity since we are considering Fixed wing UAV 
         control_est(:,1) = sign(control_est(:,1)) .* max(min(abs(control_est(:,1)), vel_lin_max), vel_lin_min); % Linear velocity 
         control_est(:,2) = sign(control_est(:,2)) .* min(abs(control_est(:,2)), vel_lin_z_max); % Limit linear velocity along z
         control_est(:,3) = sign(control_est(:,3)) .* min(abs(control_est(:,3)), vel_ang_max); % Limit angular velocity
-
 
         if takeOff && n ~= numUAV + 1
 
@@ -306,12 +321,12 @@ if DO_SIMULATION
 
         end
 
-
         for k = 1:numUAV
 
             % Refill control
             if count_refill(k) ~= 0
-                control_est(k,:) = [vel_lin_min + 70, 0, 0];
+                control_est(k,1) = vel_lin_min + 70;
+                control_est(k,3) = 0;
                 count_refill(k) = count_refill(k) - 1;
             end
 
@@ -321,6 +336,8 @@ if DO_SIMULATION
                 meas_fire1(k) = 0;
 
             end
+
+            centroids_est_stor(k,:,count) = centroids_est(k,:);
 
             % Model Simulation - REAL 
             states(k,:) = fun(states(k,:), control_est(k,:), dt);    % we use to control the real model the velocities computed using
@@ -357,6 +374,8 @@ if DO_SIMULATION
                                     x_water, y_water, sigma_water, Xf, Yf, Zf, dim_UAV, 3);
 
         end
+
+        disp(sprintf('Iteration n: %d / %d', count, tot_iter));
 
     end
 
@@ -457,6 +476,75 @@ if DO_SIMULATION
             plot(squeeze(sigmaFir1Stor(k,1,:)));
         end
         hold off;
+    end
+
+end
+
+if ANIMATION
+
+        % plotSimulation_function(trajectories(:,:,t), trajectories_est(:,:,t), centroids_est_stor(:,:,t), numUAV, dimgrid, [posFir1StoreX(:,1,t), posFir1StoreY(:,1,t)], x_fire1, y_fire1, sigmaFir1Stor(:,1,t), sigmaFir1StoreReal(1,t), x_fire2, y_fire2, sigma_fire2, x_water, y_water, sigma_water, Xf, Yf, Zf, dim_UAV, 50)
+        figure(50)
+        subplot(1,2,1);
+        set(gcf, 'Position', [0, 100, 1400, 600]); % Imposta la dimensione della figura per adattarsi meglio allo schermo
+    
+        axis([0 dimgrid(1) 0 dimgrid(2) 0 dimgrid(3)]);
+        xlabel('X Coordinate');
+        ylabel('Y Coordinate');
+        zlabel('Z Coordinate');
+    
+        grid on;
+        hold on;
+        
+        surf(Xf, Yf, Zf, 'FaceColor', [0.4660 0.6740 0.1880], 'FaceAlpha', 0.9, 'EdgeColor', 'none');
+    
+        contour3(Xf, Yf, Zf, 20, 'k');  % '20' = numero di livelli, 'k' = colore nero
+
+        theta = linspace(0, 2 * pi, 100); % Parametro angolare precomputato
+        r = sigma_water / 2;
+        x_circle = r * cos(theta) + x_water;
+        y_circle = r * sin(theta) + y_water;
+        z_circle = ones(size(theta)) * 5;
+
+        % Plot dei fuochi
+        plot3(x_fire2, y_fire2, enviroment_surface(x_fire2, y_fire2, 1), 'x', 'Color', 'r', 'MarkerSize', sigma_fire2, 'LineWidth', 2);
+    
+        % Plot dell'acqua
+        plot3(x_circle, y_circle, z_circle, 'b', 'LineWidth', 2);
+        
+        hold off;
+        view(3);
+
+        subplot(1,2,2);
+
+        axis([0 dimgrid(1) 0 dimgrid(2)]);
+        xlabel('X Coordinate');
+        ylabel('Y Coordinate');
+
+        hold on;
+        % plot(x_fire1,y_fire1,'x','Color', 'r', 'MarkerSize', curr_fire1_sig)
+        plot(x_fire2,y_fire2,'x','Color', 'r', 'MarkerSize', sigma_fire2)
+        plot(x_water,y_water,'o','Color', 'b', 'MarkerSize', sigma_water)
+        hold off;
+
+    for t = 1:count  
+        figure(50); 
+        subplot(1,2,1);
+        cla;
+        hold on;
+        for i = 1:numUAV
+
+            % Draw the UAV pose
+            drawUAV(trajectories(i,1,t), trajectories(i,2,t), trajectories(i,3,t), trajectories(i,4,t), dim_UAV,'k');
+            % drawUAV(states_est(i, 1), states_est(i, 2), states_est(i, 3), states_est(i, 4), dim_UAV,'g');
+            
+            % Plot estimated positions of fire
+            plot3(posFir1StoreReal(1,1,t), posFir1StoreReal(1,2,t), enviroment_surface(posFir1StoreReal(1,1,t), posFir1StoreReal(1,2,t), 1), 'x', 'Color', 'r', 'MarkerSize', sigmaFir1StoreReal(1,t), 'LineWidth', 2);
+            plot3(posFir1StoreX(i,1,t), posFir1StoreY(i,1,t), enviroment_surface(posFir1StoreX(i,1,t), posFir1StoreX(i,1,t), 1), 'x','MarkerSize', sigmaFir1Stor(i,1,t));
+        
+        end
+        hold off;
+        view(3);
+
     end
 
 end

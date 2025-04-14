@@ -47,6 +47,6 @@ function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, s
         vel(i,:) = UAV_control(weigth_centroids(i, :),states(i, :), Kp, Ka, Ke);
 
         % Control velocity on z
-        vel(i,2) = Kp_z * (flight_surface(states(i,1), states(i,2), scenario) + height_flight  - states(i,3));
+        vel(i,2) = Kp_z * (flight_surface(states(i,1), states(i,2), height_flight, scenario) - states(i,3));
         
     end
