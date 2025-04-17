@@ -5,15 +5,15 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;
-T_sim = 10;
+T_sim = 3;
 scenario = 1;
 tot_iter = (T_sim-1)/dt + 1;
 
 DO_SIMULATION = true;
 PLOT_DENSITY_FUNCTIONS = false;
-PLOT_TRAJECTORIES = false;
+PLOT_TRAJECTORIES = true;
 PLOT_ITERATIVE_SIMULATION = false;
-PLOT_CONSENSUS = false;
+PLOT_CONSENSUS = true;
 ANIMATION = true;
 
 %% Vehicles Parameters 
@@ -138,8 +138,8 @@ pos_fire2 = [x_fire2, y_fire2];
 sigma_fire2 = 15;   % Standard deviation of the second fire
                     % (correspond to the extention of the fire)
 
-inc_threshold1 = sigma_fire1_start;  % Distance that has to be reach from the fire 1 
-inc_threshold2 = sigma_fire2;  % Distance that has to be reach from the fire 2
+inc_threshold1 = sigma_fire1_start*0.5;  % Distance that has to be reach from the fire 1 
+inc_threshold2 = sigma_fire2*0.5;  % Distance that has to be reach from the fire 2
 
 pos_est_fire1 = zeros(numUAV,2);
 sigma_est_fire1 = zeros(numUAV,1);
@@ -158,7 +158,7 @@ y_water = 50;
 pos_water = [x_water, y_water];
 
 sigma_water = 60;
-wat_threshold = 40;   % Distance that has to be reach from the water source to refill
+wat_threshold = 10;   % Distance that has to be reach from the water source to refill
 
 % Density Functions for the fires and the water
 [G_fire,G_water] = objective_density_functions(dimgrid, pos_fire1_mov, pos_fire2, pos_water, sigma_fire1_start, sigma_fire2, sigma_water, 0, PLOT_DENSITY_FUNCTIONS);
@@ -168,7 +168,7 @@ wat_threshold = 40;   % Distance that has to be reach from the water source to r
 
 %% Consensus Parameters
 
-sensor_range = 70;
+sensor_range = 70; % distanza misura infrarossi
 meas_fire1 = zeros(numUAV,1);
 
 % Each drone has an estimate of the measurement time of the other drones (we add some uncertanty)
@@ -240,7 +240,7 @@ if DO_SIMULATION
         for i = 1:numUAV
 
             dist_inc1(i) = pdist2(pos_est_fire1(i,:), states_est(i,1:2));
-            inc_threshold1(i) = sigma_est_fire1(i,1);
+            inc_threshold1(i) = sigma_est_fire1(i,1)*0.5;
 
             if dist_real_inc1(i) <= sensor_range && objective(i) == 1 && meas_fire1(i) ~= 1
                 
@@ -522,9 +522,23 @@ if ANIMATION
     axis(ax,[0 dimgrid(1) 0 dimgrid(2) 0 dimgrid(3)]);
     hold(ax,'on');
     
+    texture = imread('grass.jpg');  % deve essere RGB
+    % Normalizza le coordinate texture rispetto alla superficie
+    [rows, cols, ~] = size(texture);
+    u_tx = linspace(1, cols, size(Xf, 2));
+    v_tx = linspace(1, rows, size(Xf, 1));
+    [uGrid, vGrid] = meshgrid(u_tx, v_tx);
+
+    % Ridimensiona l'immagine della texture per adattarla alla griglia
+    texture_resized = imresize(texture, [size(Xf,1), size(Xf,2)]);
+
     % ─── static terrain ───────────────────────────────
     surf(ax,Xf, Yf, Zf, 'FaceColor', [0.4660 0.6740 0.1880], ...
          'FaceAlpha', 0.9, 'EdgeColor', 'none');
+    %surf(ax, Xf, Yf, Zf, flip(texture_resized, 1)/255, ...
+    %        'FaceColor', 'texturemap', ...
+    %        'EdgeColor', 'none', ...
+    %        'FaceAlpha', 1);
     contour3(ax,Xf, Yf, Zf, 20, 'k');
     
     % ─── static water circle ──────────────────────────
