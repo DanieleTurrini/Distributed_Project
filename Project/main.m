@@ -5,7 +5,7 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;
-T_sim = 5;
+T_sim = 10;
 scenario = 1;
 tot_iter = (T_sim-1)/dt + 1;
 
@@ -18,16 +18,16 @@ ANIMATION = true;
 
 %% Vehicles Parameters 
 
-vel_lin_max = 600;  % Maximum linear velocity [m/s]
-vel_lin_min = 50;   % Minimum linear velocity [m/s]
-vel_lin_z_max = 400; % Maximum linear velocity along z [m/s]
-vel_ang_max = 30;  % Maximum angular velocity [rad/s]
+vel_lin_max = 100 ;  % Maximum linear velocity [m/s]
+vel_lin_min = 60 ;   % Minimum linear velocity [m/s]
+vel_lin_z_max = 100 ; % Maximum linear velocity along z [m/s]
+vel_ang_max = 20 ;  % Maximum angular velocity [rad/s]
 dim_UAV = 3;  % Dimension of the UAV
 numUAV = 5;   % Number of UAV
-Kp_z = 100;  % Proportional gain for the linear velocity along z
+Kp_z = 60;  % Proportional gain for the linear velocity along z
 Kp = 50;   % Proportional gain for the linear velocity  
-Ka = 15;   % Proportional gain for the angular velocity 
-Ke = 10;  % Additional gain for the angular velocity 
+Ka = 10;   % Proportional gain for the angular velocity 
+Ke = 0;  % Additional gain for the angular velocity 
 height_flight = 30;   % Height of flight from the ground 
 
 % Take Off
@@ -64,14 +64,27 @@ fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
                            state(3) + u(2) * deltat, ...
                            state(4) + u(3) * deltat];
 
+%% Measurement Parameters
+
+% Measurements frequency [cs]
+meas_freq_GPS = 10;
+meas_freq_ultr = 2;
+meas_freq_gyr = 1;
+
+std_gps = 3; % Standard deviation of the GPS
+std_ultrasonic = 2; % Standard deviation of the ultrasonic sensor
+std_gyro = 0.5; % Standard deviation of the gyroscope
+R = diag([std_gps^2, std_gps^2, std_ultrasonic^2, std_gyro^2]); % Covariance of the measurement noise
+
+
 %% Kalman Filter Parameters
 
 % Jacobian of the state model
 % !!! WE ASSUME THE CONTROL AS INDIPENDENT FROM THE STATE -> we put uncertanty in the control !!!
-A = @(u, theta, deltat) [1, 0,    0, -u(1) * sin(theta) * deltat;
-                         0, 1,    0,  u(2) * cos(theta) * deltat;
-                         0, 0,    1,                           0;
-                         0, 0,    0,                           1];
+A = @(u, theta, deltat) [1, 0, 0, -u(1) * sin(theta) * deltat;
+                         0, 1, 0,  u(2) * cos(theta) * deltat;
+                         0, 0, 1,                           0;
+                         0, 0, 0,                           1];
 
 % Matrix of the propagation of the process noise for (x,y,z,theta) 4x4
 % We considered the niose as white and related to the uncertanty in the
@@ -84,18 +97,6 @@ G = @(theta, deltat) [cos(theta) * deltat,      0,      0;
 % Covariance of the process noise
 std_u = [2, 2, 2]; % Uncertainty on the velocity (tang , z) and angular velocity
 Q = diag(std_u.^2);
-
-% Measurement Parameters
-
-% Measurements frequency [cs]
-meas_freq_GPS = 10;
-meas_freq_ultr = 2;
-meas_freq_gyr = 1;
-
-std_gps = 3; % Standard deviation of the GPS
-std_ultrasonic = 2; % Standard deviation of the ultrasonic sensor
-std_gyro = 0.5; % Standard deviation of the gyroscope
-R = diag([std_gps^2, std_gps^2, std_ultrasonic^2, std_gyro^2]); % Covariance of the measurement noise
 
 
 % Initial state (x,y,z,theta)
@@ -116,6 +117,7 @@ P = eye(4) * 100; % We consider some starting uncertanty
 % Map Parameters
 dimgrid = [500 500 500];   % Define the dimensions of the grid
 
+
 %% Fires Parameters
 
 % Fires Positions
@@ -125,15 +127,14 @@ x_fire2 = 450;
 y_fire2 = 50;
 
 pos_fire1_start = [x_fire1 , y_fire1];
-pos_fire1_mov = @(s) [x_fire1 - 30 * (s - 1) , y_fire1 - 15 * (s - 1)]; % t start from 1
-
-pos_fire2 = [x_fire2, y_fire2];
-
 sigma_fire1_start = 40;   % Standard deviation of the first fire
                           % (correspond to the extention of the fire)
 
-sigma_fire1_mov = @(t) 40 - 5 * (t - 1);
+pos_fire1_mov = @(s) [x_fire1 - 5 * (s - 1) , y_fire1 - 2 * (s - 1)]; % t start from 1
+sigma_fire1_mov = @(t) 40 - 1 * (t - 1);
 
+
+pos_fire2 = [x_fire2, y_fire2];
 sigma_fire2 = 15;   % Standard deviation of the second fire
                     % (correspond to the extention of the fire)
 
@@ -325,7 +326,7 @@ if DO_SIMULATION
 
             % Refill control
             if count_refill(k) ~= 0
-                control_est(k,1) = vel_lin_min + 70;
+                control_est(k,1) = vel_lin_min ;
                 control_est(k,3) = 0;
                 count_refill(k) = count_refill(k) - 1;
             end
@@ -480,71 +481,161 @@ if DO_SIMULATION
 
 end
 
-if ANIMATION
-
-        % plotSimulation_function(trajectories(:,:,t), trajectories_est(:,:,t), centroids_est_stor(:,:,t), numUAV, dimgrid, [posFir1StoreX(:,1,t), posFir1StoreY(:,1,t)], x_fire1, y_fire1, sigmaFir1Stor(:,1,t), sigmaFir1StoreReal(1,t), x_fire2, y_fire2, sigma_fire2, x_water, y_water, sigma_water, Xf, Yf, Zf, dim_UAV, 50)
-        figure(50)
-        subplot(1,2,1);
-        set(gcf, 'Position', [0, 100, 1400, 600]); % Imposta la dimensione della figura per adattarsi meglio allo schermo
+if ANIMATION 
+    %% Plot 2D voronoi simulation
+    figure(50)
+    bx = subplot(1,1,1);
+    axis(bx,[0 dimgrid(1) 0 dimgrid(2)]);
+    xlabel(bx,'X Coordinate');
+    ylabel(bx,'Y Coordinate');
+    view(bx,2);
     
-        axis([0 dimgrid(1) 0 dimgrid(2) 0 dimgrid(3)]);
-        xlabel('X Coordinate');
-        ylabel('Y Coordinate');
-        zlabel('Z Coordinate');
+    for t = 1:count
     
-        grid on;
-        hold on;
-        
-        surf(Xf, Yf, Zf, 'FaceColor', [0.4660 0.6740 0.1880], 'FaceAlpha', 0.9, 'EdgeColor', 'none');
-    
-        contour3(Xf, Yf, Zf, 20, 'k');  % '20' = numero di livelli, 'k' = colore nero
+        cla(bx);
+        hold(bx,'on');
 
-        theta = linspace(0, 2 * pi, 100); % Parametro angolare precomputato
-        r = sigma_water / 2;
-        x_circle = r * cos(theta) + x_water;
-        y_circle = r * sin(theta) + y_water;
-        z_circle = ones(size(theta)) * 5;
-
-        % Plot dei fuochi
-        plot3(x_fire2, y_fire2, enviroment_surface(x_fire2, y_fire2, 1), 'x', 'Color', 'r', 'MarkerSize', sigma_fire2, 'LineWidth', 2);
-    
-        % Plot dell'acqua
-        plot3(x_circle, y_circle, z_circle, 'b', 'LineWidth', 2);
-        
-        hold off;
-        view(3);
-
-        subplot(1,2,2);
-
-        axis([0 dimgrid(1) 0 dimgrid(2)]);
-        xlabel('X Coordinate');
-        ylabel('Y Coordinate');
-
-        hold on;
-        % plot(x_fire1,y_fire1,'x','Color', 'r', 'MarkerSize', curr_fire1_sig)
-        plot(x_fire2,y_fire2,'x','Color', 'r', 'MarkerSize', sigma_fire2)
-        plot(x_water,y_water,'o','Color', 'b', 'MarkerSize', sigma_water)
-        hold off;
-
-    for t = 1:count  
-        figure(50); 
-        subplot(1,2,1);
-        cla;
-        hold on;
+        plot(bx,posFir1StoreReal(1,1,t), posFir1StoreReal(1,2,t), 'rx','MarkerSize', sigmaFir1StoreReal(1,t));
+        plot(bx,x_fire2,y_fire2,'x','Color', 'r', 'MarkerSize', sigma_fire2)
+        plot(bx,x_water,y_water,'o','Color', 'b', 'MarkerSize', sigma_water)
         for i = 1:numUAV
-
             % Draw the UAV pose
-            drawUAV(trajectories(i,1,t), trajectories(i,2,t), trajectories(i,3,t), trajectories(i,4,t), dim_UAV,'k');
-            % drawUAV(states_est(i, 1), states_est(i, 2), states_est(i, 3), states_est(i, 4), dim_UAV,'g');
-            
-            % Plot estimated positions of fire
-            plot3(posFir1StoreReal(1,1,t), posFir1StoreReal(1,2,t), enviroment_surface(posFir1StoreReal(1,1,t), posFir1StoreReal(1,2,t), 1), 'x', 'Color', 'r', 'MarkerSize', sigmaFir1StoreReal(1,t), 'LineWidth', 2);
-            plot3(posFir1StoreX(i,1,t), posFir1StoreY(i,1,t), enviroment_surface(posFir1StoreX(i,1,t), posFir1StoreX(i,1,t), 1), 'x','MarkerSize', sigmaFir1Stor(i,1,t));
-        
+            drawUAV2D(trajectories(i, 1,t), trajectories(i, 2,t), trajectories(i, 4,t), dim_UAV,'k');
+            drawUAV2D(trajectories_est(i, 1,t), trajectories_est(i, 2,t), trajectories_est(i, 4,t), dim_UAV,'g');
+    
+            plot(bx,centroids_est_stor(i,1,t), centroids_est_stor(i,2,t), 'x', 'Color', 'g');
+            plot(bx,posFir1StoreX(i,1,t), posFir1StoreY(i,1,t), 'x','MarkerSize', sigmaFir1Stor(i,1,t));
         end
-        hold off;
-        view(3);
-
+    
+        [vx_es, vy_es] = voronoi(trajectories_est(:,1,t), trajectories_est(:,2,t)); 
+        plot(bx,vx_es, vy_es, 'g-');
+    
+        hold(bx,'off');
+        drawnow; 
+        
     end
 
+    %% Plot 3D Simulation
+    figure(60);
+
+    ax = subplot(1,1,1);
+    axis(ax,[0 dimgrid(1) 0 dimgrid(2) 0 dimgrid(3)]);
+    hold(ax,'on');
+    
+    % ─── static terrain ───────────────────────────────
+    surf(ax,Xf, Yf, Zf, 'FaceColor', [0.4660 0.6740 0.1880], ...
+         'FaceAlpha', 0.9, 'EdgeColor', 'none');
+    contour3(ax,Xf, Yf, Zf, 20, 'k');
+    
+    % ─── static water circle ──────────────────────────
+    theta = linspace(0,2*pi,100);
+    r = sigma_water/2;
+    x_circle = r*cos(theta)+x_water;
+    y_circle = r*sin(theta)+y_water;
+    z_circle = 5 * ones(size(theta));
+    hWater = plot3(ax,x_circle, y_circle, z_circle, 'b', 'LineWidth', 2);
+    
+    % ─── static second fire ──────────────────────────
+    hFire2 = plot3(ax,x_fire2, y_fire2, ...
+                   enviroment_surface(x_fire2,y_fire2,1), ...
+                   'x', 'Color', 'r', ...
+                   'MarkerSize', sigma_fire2, 'LineWidth', 2);
+    
+    view(ax,3);
+    grid(ax,'on');
+    xlabel(ax,'X'); ylabel(ax,'Y'); zlabel(ax,'Z');
+
+    
+    % ——— define a simple airplane in its body‑frame ———
+    fuselage = [  1;  0;  0 ];        % nose
+    wingL    = [ 0;  0.5;  0 ];      % left wingtip
+    wingR    = [ 0; -0.5;  0 ];      % right wingtip
+    tailT    = [ -0.5; 0;   0.2 ];    % tail top
+    tailB    = [ -0.5; 0;  -0.2 ];    % tail bottom
+    
+    % vertices matrix
+    V = [ fuselage, wingL, wingR, tailT, tailB ]';   % 5×3
+    
+    % faces list (triangles)
+    F = [ ...
+        1 2 3;   % main wing
+        1 4 5;   % tailplane top/bottom
+        2 4 3;   % left side fuselage
+        3 5 2;   % right side fuselage
+    ];
+    
+    V = dim_UAV * V;
+    
+    hHeightLine = gobjects(numUAV,1);
+    
+    % number of UAVs
+    hPlaneTF = gobjects(numUAV,1);
+    for i = 1:numUAV
+       
+        hPlaneTF(i) = hgtransform;
+    
+        patch(ax, 'Vertices', V, 'Faces', F, ...
+               'FaceColor', rand(1,3)*0.5 + 0.5, ...
+               'EdgeColor', 'k', ...
+               'Parent', hPlaneTF(i) );
+    
+        hHeightLine(i) = plot3(ax,[NaN NaN], [NaN NaN], [NaN NaN], ...  
+                                ':', ...      
+                                'Color', [0 0 0], ...
+                                'LineWidth', 0.2 );
+    
+    end
+    
+    % placeholders for the real‐fire and estimated‐fire markers
+    hFireReal = plot3(ax,NaN, NaN, NaN, 'xr', 'LineWidth', 2);
+    hFireEst  = plot3(ax,NaN, NaN, NaN, 'x',  'MarkerSize', 8);
+    
+    
+    for t = 1:count
+        % ─── update each UAV’s position ──────────────────────
+        for i = 1:numUAV
+    
+            x = trajectories(i,1,t);
+            y = trajectories(i,2,t);
+            z = trajectories(i,3,t);
+            theta = trajectories(i,4,t); 
+    
+            % surface height under the UAV    
+            z0  = enviroment_surface(x, y, 1);
+    
+            T = makehgtform('translate',[x,y,z], ...
+                            'zrotate', theta);
+    
+            set(hPlaneTF(i), 'Matrix', T);
+    
+            set(hHeightLine(i), ...
+                'XData', [x,    x], ...
+                'YData', [y,    y], ...
+                'ZData', [z0,   z] );
+        end
+    
+        % ─── update the “real” fire marker ────────────────────
+        set(hFireReal, ...
+            'XData', posFir1StoreReal(1,1,t), ...
+            'YData', posFir1StoreReal(1,2,t), ...
+            'ZData', enviroment_surface(...
+                       posFir1StoreReal(1,1,t), ...
+                       posFir1StoreReal(1,2,t), 1), ...
+            'MarkerSize', sigmaFir1StoreReal(1,t));
+    
+        % ─── update the “estimated” fire marker ───────────────
+        set(hFireEst, ...
+            'XData', posFir1StoreX(i,1,t), ...
+            'YData', posFir1StoreY(i,1,t), ...
+            'ZData', enviroment_surface(...
+                       posFir1StoreX(i,1,t), ...
+                       posFir1StoreY(i,1,t), 1), ...
+            'MarkerSize', sigmaFir1Stor(i,1,t));
+
+        hold(ax,'off');
+        drawnow; 
+        
+    end
 end
+
+   

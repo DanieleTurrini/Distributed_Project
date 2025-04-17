@@ -16,7 +16,7 @@ if PLOT_DENSITY_FUNCTIONS
 
     % First subplot for the fire density plot
     subplot(1, 2, 1);
-    surf(x_m, y_m, G_fires);
+    surf(x_m, y_m, G_fires,'FaceAlpha', 0.8);
     shading interp; % Makes the surface smoother
     colormap jet;
     colorbar;
@@ -35,7 +35,7 @@ if PLOT_DENSITY_FUNCTIONS
     
     % Second subplot for the water source density plot
     subplot(1, 2, 2);
-    surf(x_m, y_m, G_water);
+    surf(x_m, y_m, G_water,'FaceAlpha', 0.8);
     shading interp;
     colormap jet;
     colorbar;

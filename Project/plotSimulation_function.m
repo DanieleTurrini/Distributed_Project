@@ -27,7 +27,6 @@ function plotSimulation_function(states, states_est, centroids_est, numUAV, dimg
 
         % Draw the UAV pose
         drawUAV(states(i, 1), states(i, 2), states(i, 3), states(i, 4), dim_UAV,'k');
-        % drawUAV(states_est(i, 1), states_est(i, 2), states_est(i, 3), states_est(i, 4), dim_UAV,'g');
         
         % Plot estimated positions of fire
         plot3(pos_est_fire1(i,1), pos_est_fire1(i,2), enviroment_surface(pos_est_fire1(i,1), pos_est_fire1(i,2), 1), 'x','MarkerSize', sigma_est_fire1(i,1));
