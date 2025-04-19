@@ -5,16 +5,20 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;
-T_sim = 3;
+T_sim = 5;
 scenario = 1;
 tot_iter = (T_sim-1)/dt + 1;
 
 DO_SIMULATION = true;
 PLOT_DENSITY_FUNCTIONS = false;
-PLOT_TRAJECTORIES = true;
+PLOT_TRAJECTORIES = false;
 PLOT_ITERATIVE_SIMULATION = false;
-PLOT_CONSENSUS = true;
+PLOT_CONSENSUS = false;
 ANIMATION = true;
+
+if DO_SIMULATION == true
+    ANIMATION = true;
+end
 
 %% Vehicles Parameters 
 
@@ -22,7 +26,7 @@ vel_lin_max = 100 ;  % Maximum linear velocity [m/s]
 vel_lin_min = 60 ;   % Minimum linear velocity [m/s]
 vel_lin_z_max = 100 ; % Maximum linear velocity along z [m/s]
 vel_ang_max = 20 ;  % Maximum angular velocity [rad/s]
-dim_UAV = 3;  % Dimension of the UAV
+dim_UAV = 5;  % Dimension of the UAV
 numUAV = 5;   % Number of UAV
 Kp_z = 60;  % Proportional gain for the linear velocity along z
 Kp = 50;   % Proportional gain for the linear velocity  
@@ -158,7 +162,7 @@ y_water = 50;
 pos_water = [x_water, y_water];
 
 sigma_water = 60;
-wat_threshold = 10;   % Distance that has to be reach from the water source to refill
+wat_threshold = 20;   % Distance that has to be reach from the water source to refill
 
 % Density Functions for the fires and the water
 [G_fire,G_water] = objective_density_functions(dimgrid, pos_fire1_mov, pos_fire2, pos_water, sigma_fire1_start, sigma_fire2, sigma_water, 0, PLOT_DENSITY_FUNCTIONS);
@@ -209,6 +213,11 @@ sigmaFir1Stor(:,1,1) = sigma_est_fire1(:,1);
 % Real Path of Fire 1
 posFir1StoreReal = zeros(1, 2, (T_sim-1)/dt);
 sigmaFir1StoreReal = zeros(1, (T_sim-1)/dt);
+
+% Voronoi Edges
+vx_Data = cell(1, tot_iter); % Celle per memorizzare i dati di vx
+vy_Data = cell(1, tot_iter); % Celle per memorizzare i dati di vy
+
 
 %% Simulation
 if DO_SIMULATION
@@ -363,8 +372,12 @@ if DO_SIMULATION
             trajectories_est(k,:,count) = states_est(k,:);
         end
 
+        % Save Voronoi edges
+        [vx, vy] = voronoi(trajectories_est(:,1,count), trajectories_est(:,2,count));
+        vx_Data{count} = vx;
+        vy_Data{count} = vy;
 
-%% Plots
+        %% Plots
         % real and estimated   
         if PLOT_ITERATIVE_SIMULATION
 
@@ -376,107 +389,16 @@ if DO_SIMULATION
 
         end
 
-        disp(sprintf('Iteration n: %d / %d', count, tot_iter));
-
+        fprintf('Iteration n: %d / %d\n', count, tot_iter);
+        
     end
 
     if PLOT_TRAJECTORIES
-        
-        for i = 1:numUAV
-
-            figure(4 + i)
-            subplot(4,1,1);
-            plot(squeeze(trajectories(i,1,:)),'b');
-            hold on;
-            plot(squeeze(trajectories_est(i,1,:)),'r--');
-            hold off;
-            xlabel('Time');
-            ylabel('X');
-            title(sprintf('X-Dimension of UAV %d',i));
-            legend('Real Trajectory','Estimated Trajectory');
-
-            subplot(4,1,2);
-            plot(squeeze(trajectories(i,2,:)),'b');
-            hold on;
-            plot(squeeze(trajectories_est(i,2,:)),'r--');
-            hold off;
-            xlabel('Time');
-            ylabel('Y');
-            title(sprintf('Y-Dimension of UAV %d',i));
-            legend('Real Trajectory','Estimated Trajectory');
-
-            subplot(4,1,3);
-            plot(squeeze(trajectories(i,3,:)),'b');
-            hold on;
-            plot(squeeze(trajectories_est(i,3,:)),'r--');
-            hold off;
-            xlabel('Time');
-            ylabel('Z');
-            title(sprintf('Z-Dimension of UAV %d',i));
-            legend('Real Trajectory','Estimated Trajectory');
-
-            subplot(4,1,4);
-            plot(squeeze(trajectories(i,4,:)),'b');
-            hold on;
-            plot(squeeze(trajectories_est(i,4,:)),'r--');
-            hold off;
-            xlabel('Time');
-            ylabel('Theta');
-            title(sprintf('Theta-Dimension of UAV %d',i));
-            legend('Real Trajectory','Estimated Trajectory');
-
-            figure(5+numUAV)
-            subplot(numUAV,1,i);
-            plot(squeeze(P_trace(i,:)));
-            xlabel('Time');
-            ylabel('Covariance');
-            title(sprintf('Trace of Covariance matrix of UAV %d',i));
-          
-        end
-
-
+        plotUAVTrajectories_function(numUAV, trajectories, trajectories_est, P_trace);
     end
 
     if PLOT_CONSENSUS 
-
-        figure(20)
-        subplot(3,1,1);
-        xlabel('Time');
-        ylabel('X Coordinate');
-        title('Estimated X Coordinate of fire 1');
-        hold on;
-        plot(squeeze(posFir1StoreReal(1,1,:)),'--');
-
-        for k = 1:numUAV
-            plot(squeeze(posFir1StoreX(k,1,:)));
-        end
-        hold off;
-
-        figure(20)
-        subplot(3,1,2);
-        xlabel('Time');
-        ylabel('Y Coordinate');
-        title('Estimated Y Coordinate of fire 1');
-        hold on;
-        plot(squeeze(posFir1StoreReal(1,2,:)),'--');
-
-        for k = 1:numUAV
-            plot(squeeze(posFir1StoreY(k,1,:)));
-        end
-        hold off;
-
-        figure(20)
-        subplot(3,1,3);
-        xlabel('Time');
-        ylabel('Exstension');
-        title('Estimated Extension of fire 1');
-        hold on;
-        plot(squeeze(sigmaFir1StoreReal(1,1,:)),'--');
-
-        for k = 1:numUAV
-            plot(squeeze(sigmaFir1Stor(k,1,:)));
-        end
-        hold off;
+        plotConsensus_function(numUAV, posFir1StoreReal, posFir1StoreX, posFir1StoreY, sigmaFir1StoreReal, sigmaFir1Stor);  
     end
 
 end
@@ -490,7 +412,8 @@ if ANIMATION
     ylabel(bx,'Y Coordinate');
     view(bx,2);
     
-    for t = 1:count
+
+     for t = 1:count
     
         cla(bx);
         hold(bx,'on');
@@ -507,39 +430,53 @@ if ANIMATION
             plot(bx,posFir1StoreX(i,1,t), posFir1StoreY(i,1,t), 'x','MarkerSize', sigmaFir1Stor(i,1,t));
         end
     
-        [vx_es, vy_es] = voronoi(trajectories_est(:,1,t), trajectories_est(:,2,t)); 
+        %[vx_es, vy_es] = voronoi(trajectories_est(:,1,t), trajectories_est(:,2,t)); 
+        vx_es = vx_Data{t};
+        vy_es = vy_Data{t};
         plot(bx,vx_es, vy_es, 'g-');
     
         hold(bx,'off');
         drawnow; 
         
-    end
+    end  
+
+
 
     %% Plot 3D Simulation
     figure(60);
-
     ax = subplot(1,1,1);
     axis(ax,[0 dimgrid(1) 0 dimgrid(2) 0 dimgrid(3)]);
     hold(ax,'on');
     
-    texture = imread('grass.jpg');  % deve essere RGB
-    % Normalizza le coordinate texture rispetto alla superficie
-    [rows, cols, ~] = size(texture);
-    u_tx = linspace(1, cols, size(Xf, 2));
-    v_tx = linspace(1, rows, size(Xf, 1));
-    [uGrid, vGrid] = meshgrid(u_tx, v_tx);
-
-    % Ridimensiona l'immagine della texture per adattarla alla griglia
+    % Carica la texture
+    texture = imread('Mountain.jpg');  % deve essere RGB
     texture_resized = imresize(texture, [size(Xf,1), size(Xf,2)]);
+    texture_resized = double(texture_resized) / 255;  % Normalizza tra 0 e 1
+
+    % Aumenta la luminosità
+    brightness_factor = 1.5;
+    texture_resized = min(texture_resized * brightness_factor, 1);
+
+    % Crea uno sfondo verde uniforme
+    green_background = repmat(reshape([0.4660 0.6740 0.1880], 1, 1, 3), size(texture_resized, 1), size(texture_resized, 2));
+
+    % Fattore di trasparenza (0 = solo sfondo verde, 1 = solo texture)
+    alpha = 0.6;  % <-- regola questo valore
+
+    % Mix tra texture e sfondo
+    blended_texture = alpha * texture_resized + (1 - alpha) * green_background;
 
     % ─── static terrain ───────────────────────────────
-    surf(ax,Xf, Yf, Zf, 'FaceColor', [0.4660 0.6740 0.1880], ...
-         'FaceAlpha', 0.9, 'EdgeColor', 'none');
-    %surf(ax, Xf, Yf, Zf, flip(texture_resized, 1)/255, ...
-    %        'FaceColor', 'texturemap', ...
-    %        'EdgeColor', 'none', ...
-    %        'FaceAlpha', 1);
-    contour3(ax,Xf, Yf, Zf, 20, 'k');
+    surf(ax, Xf, Yf, Zf, 'CData', flip(blended_texture, 1), ...
+        'FaceColor', 'texturemap', ...
+        'EdgeColor', 'none', ...
+        'FaceLighting', 'none');
+
+    lighting none;
+
+
+    % Aggiungi le linee di contorno
+    contour3(ax, Xf, Yf, Zf, 20, 'k');
     
     % ─── static water circle ──────────────────────────
     theta = linspace(0,2*pi,100);
@@ -649,7 +586,8 @@ if ANIMATION
         hold(ax,'off');
         drawnow; 
         
-    end
+    end 
+
 end
 
    
