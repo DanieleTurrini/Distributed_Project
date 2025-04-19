@@ -5,10 +5,11 @@ function [G_fires, G_water] = objective_density_functions(dimgrid,pos_fire1,pos_
 [x_m, y_m] = meshgrid(1:dimgrid(1), 1:dimgrid(2));
 
 posFireMov1 = pos_fire1(t);
+posFireMov2 = pos_fire2(t);
 
 % Calcolo della distribuzione gaussiana
 G_fires = exp(-(((x_m - posFireMov1(1)).^2) / (2 * sigma_fire1^2) + ((y_m - posFireMov1(2)).^2) / (2 * sigma_fire1^2))) + ...
-          exp(-(((x_m - pos_fire2(1)).^2) / (2 * sigma_fire2^2) + ((y_m - pos_fire2(2)).^2) / (2 * sigma_fire2^2)));
+          exp(-(((x_m - posFireMov2(1)).^2) / (2 * sigma_fire2^2) + ((y_m - posFireMov2(2)).^2) / (2 * sigma_fire2^2)));
 G_water = exp(-(((x_m - pos_water(1)).^2) / (2 * sigma_water^2) + ((y_m - pos_water(2)).^2) / (2 * sigma_water^2)));
 
 if PLOT_DENSITY_FUNCTIONS

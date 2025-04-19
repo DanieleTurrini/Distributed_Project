@@ -1,4 +1,4 @@
-function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, states, Kp_z, Kp, Ka, Ke, pos_est_fire1, pos_fire2, sigma_est_fire1, sigma_fire2, G_water,height_flight, scenario, objective)
+function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, states, Kp_z, Kp, Ka, Ke, pos_est_fire1, pos_est_fire2, sigma_est_fire1, sigma_est_fire2, G_water,height_flight, scenario, objective)
 
     % Crea una griglia di punti con le dimensioni specificate da dimgrid
     [X, Y] = meshgrid(1:dimgrid(1), 1:dimgrid(2));
@@ -19,7 +19,7 @@ function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, s
     % Calcola le aree e i centroidi pesati per ogni punto
     for i = 1:numUAV
 
-        G_fire = fires_dens_function(dimgrid, pos_est_fire1(i,:), pos_fire2, sigma_est_fire1(i,1), sigma_fire2);
+        G_fire = fires_dens_function(dimgrid, pos_est_fire1(i,:), pos_est_fire2(i,:), sigma_est_fire1(i,1), sigma_est_fire2(i,1));
 
         % Estrai i punti della regione assegnata al drone i
         region_points = voronoi_grid(minimum_indices == i, :); % Punti della regione
@@ -39,6 +39,9 @@ function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, s
 
         % Calcolo della massa della regione
         masses(i) = sum(weights);
+        if masses(i) == 0
+            masses(i) = 1; % Evita la divisione per zero
+        end
 
         % Calcolo del centroide pesato
         weigth_centroids(i, :) = sum(region_points .* weights, 1) / masses(i);
@@ -50,3 +53,7 @@ function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, s
         vel(i,2) = Kp_z * (flight_surface(states(i,1), states(i,2), height_flight, scenario) - states(i,3));
         
     end
+    masses
+    weigth_centroids
+    
+end
