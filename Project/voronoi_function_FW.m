@@ -1,4 +1,4 @@
-function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, states, Kp_z, Kp, Ka, Ke, pos_est_fire1, pos_est_fire2, sigma_est_fire1, sigma_est_fire2, G_water,height_flight, scenario, objective)
+function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, states, Kp_z, Kp, Ka, pos_est_fire1, pos_est_fire2, sigma_est_fire1, sigma_est_fire2, G_water,height_flight, scenario, objective)
 
     % Crea una griglia di punti con le dimensioni specificate da dimgrid
     [X, Y] = meshgrid(1:dimgrid(1), 1:dimgrid(2));
@@ -47,13 +47,12 @@ function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, s
         weigth_centroids(i, :) = sum(region_points .* weights, 1) / masses(i);
         
         % Control velocity on plane x-y
-        vel(i,:) = UAV_control(weigth_centroids(i, :),states(i, :), Kp, Ka, Ke);
+        vel(i,:) = UAV_control(weigth_centroids(i, :),states(i, :), Kp, Ka);
 
         % Control velocity on z
         vel(i,2) = Kp_z * (flight_surface(states(i,1), states(i,2), height_flight, scenario) - states(i,3));
         
     end
-    masses
-    weigth_centroids
+
     
 end

@@ -8,24 +8,15 @@ function [x, P] = ExtendedKalmanFilter_function(states_est, measure, control, A,
     
     if mod(count, meas_freq_GPS) == 0
 
-        H = H(1:2,:);
-        R = R(1:2,1:2);
-        measure = measure(1:2);
-        [x,P] = update_step(x, measure, H, P, R);
+        [x,P] = update_step(x, measure(1:2), H(1:2,:), P, R(1:2,1:2));
+    end
+    if mod(count, meas_freq_ultr) == 0
 
-    elseif mod(count, meas_freq_ultr) == 0
+        [x,P] = update_step(x, measure(3), H(3,:), P, R(3,3));
+    end
+    if mod(count, meas_freq_gyr) == 0
 
-        H = H(3,:);
-        R = R(3,3);
-        measure = measure(3);
-        [x,P] = update_step(x, measure, H, P, R);
-
-    elseif mod(count, meas_freq_gyr) == 0
-
-        H = H(4,:);
-        R = R(4,4);
-        measure = measure(4);
-        [x,P] = update_step(x, measure, H, P, R);
+        [x,P] = update_step(x, measure(4), H(4,:), P, R(4,4));
 
     end
     
