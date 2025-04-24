@@ -1,4 +1,4 @@
-function plotUAVTrajectories_function(numUAV, trajectories, trajectories_est, P_trace)
+function plotUAVTrajectories_function(numUAV, trajectories, trajectories_est)
     % Funzione per generare i grafici delle traiettorie e della covarianza per ciascun UAV
     %
     % Input:
