@@ -1,4 +1,4 @@
-function plotUAVTrajectories_function(numUAV, trajectories, trajectories_est, P_trace)
+function plotUAVTrajectories_function(numUAV, trajectories, trajectories_est)
     % Funzione per generare i grafici delle traiettorie e della covarianza per ciascun UAV
     %
     % Input:
@@ -55,12 +55,5 @@ function plotUAVTrajectories_function(numUAV, trajectories, trajectories_est, P_
         title(sprintf('Theta-Dimension of UAV %d', i));
         legend('Real Trajectory', 'Estimated Trajectory');
 
-        % Figura per la traccia della matrice di covarianza
-        figure(5 + numUAV);
-        subplot(numUAV,1,i);
-        plot(squeeze(P_trace(i,:)));
-        xlabel('Time');
-        ylabel('Covariance');
-        title(sprintf('Trace of Covariance matrix of UAV %d', i));
     end
 end

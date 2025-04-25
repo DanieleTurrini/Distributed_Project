@@ -5,49 +5,54 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;
-T_sim = 15;
+T_sim = 13;
 scenario = 1;
-tot_iter = (T_sim-1)/dt + 1;
+tot_iter = (T_sim - 1)/dt + 1;
+
+fail_time = 6;
+ind = 0;
 
 DO_SIMULATION = true;
-PLOT_DENSITY_FUNCTIONS = false;
-PLOT_TRAJECTORIES = false;
+UAV_FAIL = true;
+PLOT_DENSITY_FUNCTIONS = true;
+PLOT_TRAJECTORIES = true;
+PLOT_COVARIANCE_TRACE = true;
+PLOT_CONSENSUS = true;
+
 PLOT_ITERATIVE_SIMULATION = false;
-PLOT_CONSENSUS = false;
 ANIMATION = true;
 
-if DO_SIMULATION == true
-    ANIMATION = true;
+if ANIMATION == true
+    DO_SIMULATION = true;
 end
 
 %% Vehicles Parameters 
 
 vel_lin_max = 100 ;  % Maximum linear velocity [m/s]
-vel_lin_min = 60 ;   % Minimum linear velocity [m/s]
+vel_lin_min = 70 ;  % Minimum linear velocity [m/s]
 vel_lin_z_max = 100 ; % Maximum linear velocity along z [m/s]
 vel_ang_max = 20 ;  % Maximum angular velocity [rad/s]
 dim_UAV = 5;  % Dimension of the UAV
 numUAV = 5;   % Number of UAV
-Kp_z = 60;  % Proportional gain for the linear velocity along z
+Kp_z = 100;  % Proportional gain for the linear velocity along z
 Kp = 50;   % Proportional gain for the linear velocity  
-Ka = 10;   % Proportional gain for the angular velocity 
-Ke = 0;  % Additional gain for the angular velocity 
+Ka = 10;   % Proportional gain for the angular velocity
 height_flight = 30;   % Height of flight from the ground 
 
 % Take Off
 takeOff = true;
-freq_takeOff = 20;
+freq_takeOff = 10;
 n = 1;
 
 % Refill
-refill_time = 20;
+refill_time = 30;
 count_refill = zeros(numUAV,1);
 
 % Generate random starting positions for each point
 x = ones(numUAV,1) * 50;   % Random x coordinates
 y = ones(numUAV,1) * 250;  % Random y coordinates
 z = ones(numUAV,1) * 5;    % Start from ground
-theta = ones(numUAV,1) * (-pi/2);
+theta = ones(numUAV,1) * (- pi/2);
 
 for i = 1:numUAV
     y(i) = y(i) + 10 * i;
@@ -71,22 +76,21 @@ fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
 %% Measurement Parameters
 
 % Measurements frequency [cs]
-meas_freq_GPS = 10;
-meas_freq_ultr = 2;
+meas_freq_GPS = 20; % 5 Hz
+meas_freq_ultr = 4; % 25 Hz
 meas_freq_gyr = 1;
 
 std_gps = 3; % Standard deviation of the GPS
 std_ultrasonic = 2; % Standard deviation of the ultrasonic sensor
-std_gyro = 0.5; % Standard deviation of the gyroscope
+std_gyro = 0.1; % Standard deviation of the gyroscope
 R = diag([std_gps^2, std_gps^2, std_ultrasonic^2, std_gyro^2]); % Covariance of the measurement noise
-
 
 %% Kalman Filter Parameters
 
 % Jacobian of the state model
 % !!! WE ASSUME THE CONTROL AS INDIPENDENT FROM THE STATE -> we put uncertanty in the control !!!
 A = @(u, theta, deltat) [1, 0, 0, -u(1) * sin(theta) * deltat;
-                         0, 1, 0,  u(2) * cos(theta) * deltat;
+                         0, 1, 0,  u(1) * cos(theta) * deltat;
                          0, 0, 1,                           0;
                          0, 0, 0,                           1];
 
@@ -99,7 +103,7 @@ G = @(theta, deltat) [cos(theta) * deltat,      0,      0;
                                         0,      0, deltat];
 
 % Covariance of the process noise
-std_u = [2, 2, 2]; % Uncertainty on the velocity (tang , z) and angular velocity
+std_u = [2, 2, 2]; % Uncertainty on the velocity linear in x-y , linear in z and angular velocity
 Q = diag(std_u.^2);
 
 
@@ -110,19 +114,21 @@ states_est = (states' + [std_gps * randn(2, numUAV); zeros(1, numUAV); std_gyro 
 H = [1,0,0,    0;
      0,1,0,    0;
      0,0,1,    0;
-     0,0,0, 1/dt]; % ( me measure theta with a gyroscope, it measure
-                %   the angular velocity so we have
-                %   to multiply it by the time step )
-
+     0,0,0, 1/dt];  % ( me measure theta with a gyroscope, it measure
+                    %   the angular velocity so we have
+                    %   to multiply it by the time step )
 
 % Covariance matrix of the initial estimate
-P = eye(4) * 100; % We consider some starting uncertanty
+P = eye(4) * 30; % We consider some starting uncertanty
 
 % Map Parameters
 dimgrid = [500 500 500];   % Define the dimensions of the grid
 
 
 %% Fires Parameters
+
+drop_dist = 0.6; % Percentage of the distance from the center of 
+                 % the fire that has to be reached until drop the water 
 
 % Fires Positions
 x_fire1 = 300;
@@ -132,11 +138,11 @@ y_fire2 = 50;
 
 pos_fire1_start = [x_fire1 , y_fire1];
 pos_fire2_start = [x_fire2 , y_fire2];
-%sigma_fire1_start = 40;   % Standard deviation of the first fire
+% sigma_fire1_start = 40;   % Standard deviation of the first fire
                           % (correspond to the extention of the fire)
 
 pos_fire1_mov = @(t) [x_fire1 - 5 * (t - 1) , y_fire1 - 2 * (t - 1)]; % t start from 1
-%sigma_fire1_mov = @(t) 40 - 1 * (t - 1);
+% sigma_fire1_mov = @(t) 40 - 1 * (t - 1);
 sigma_fire1 = 40;   % Standard deviation of the first fire
                     % (correspond to the extention of the fire)
 
@@ -145,8 +151,8 @@ pos_fire2_mov = @(t) [x_fire2 - 2.5 * (t - 1) , y_fire2 + 1 * (t - 1)]; % t star
 sigma_fire2 = 15;   % Standard deviation of the second fire
                     % (correspond to the extention of the fire)
 
-inc_threshold1 = sigma_fire1*0.5;  % Distance that has to be reach from the fire 1 
-inc_threshold2 = sigma_fire2*0.5;  % Distance that has to be reach from the fire 2
+inc_threshold1 = sigma_fire1 * drop_dist;  % Distance that has to be reach from the fire 1 
+inc_threshold2 = sigma_fire2 * drop_dist;  % Distance that has to be reach from the fire 2
 
 pos_est_fire1 = zeros(numUAV,2);
 sigma_est_fire1 = zeros(numUAV,1);
@@ -165,8 +171,8 @@ for i = 1:numUAV
 end
 
 % Decreasing factor of the fire
-deacreasingFire_factor = 20;    % Decreasing factor of the fire extension
-                                % (we assume that the fire decrease every time the UAV is close to it)
+deacreasingFire_factor = 5;    % Decreasing factor of the fire extension
+                                % (we assume that the fire decrease every time the UAV drop the water)
 
 %% Water Parameters
 
@@ -176,8 +182,8 @@ y_water = 50;
 
 pos_water = [x_water, y_water];
 
-sigma_water = 60;
-wat_threshold = 20;   % Distance that has to be reach from the water source to refill
+sigma_water = 40;
+wat_threshold = 30;   % Distance that has to be reach from the water source to refill
 
 % Density Functions for the fires and the water
 [G_fire,G_water] = objective_density_functions(dimgrid, pos_fire1_mov, pos_fire2_mov, pos_water, sigma_fire1, sigma_fire2, sigma_water, 0, PLOT_DENSITY_FUNCTIONS);
@@ -187,7 +193,7 @@ wat_threshold = 20;   % Distance that has to be reach from the water source to r
 
 %% Consensus Parameters
 
-sensor_range = 70; % distanza misura infrarossi
+sensor_range = 70; % Infrared measurement distance
 meas_fire1 = zeros(numUAV,1);
 meas_fire2 = zeros(numUAV,1);
 
@@ -195,8 +201,6 @@ meas_fire2 = zeros(numUAV,1);
 LastMeas1 = ones(numUAV,numUAV) + 6 * rand(numUAV,numUAV) - 3;           % At the beginning no one UAV has done a measurement
 LastMeas2 = ones(numUAV,numUAV) + 6 * rand(numUAV,numUAV) - 3;           % At the beginning no one UAV has done a measurement
 
-invLastMeas1 = ones(numUAV,numUAV);
-invLastMeas2 = ones(numUAV,numUAV);
 invSumLastMeas1 = ones(1,numUAV);
 invSumLastMeas2 = ones(1,numUAV);
 
@@ -207,52 +211,46 @@ Qc2 = ones(numUAV) * 1/numUAV;                   % Initialization of matrix Q fo
 %% Save Matrices Declaration
 
 % Real Trajectories
-trajectories = zeros(numUAV, 4, (T_sim-1)/dt);
+trajectories = zeros(numUAV, 4, (T_sim-1)/dt+1);
 
 % Estimated Trajectories
-trajectories_est = zeros(numUAV, 4, (T_sim-1)/dt);
+trajectories_est = zeros(numUAV, 4, (T_sim-1)/dt+1);
 
 % Save all the traces of P
-P_trace = zeros(numUAV,(T_sim-1)/dt);
+P_trace = zeros(numUAV,(T_sim)/dt);
 
 % Centroids Trajectories
-centroids_est_stor = zeros(numUAV, 2, (T_sim-1)/dt);
+centroids_est_stor = zeros(numUAV, 2, (T_sim-1)/dt+1);
 
+
+Fir1Store = zeros(numUAV, 3, (T_sim-1)/dt+1); 
 % Estimated Trajectory of X coordinate of fire 1
-posFir1StoreX = zeros(numUAV, 1, (T_sim-1)/dt); 
-posFir1StoreX(:,1,1) = pos_est_fire1(:,1);
-
+Fir1Store(:,1,1) = pos_est_fire1(:,1);
 % Estimated Trajectory of Y coordinate of fire 1
-posFir1StoreY = zeros(numUAV, 1, (T_sim-1)/dt);
-posFir1StoreY(:,1,1) = pos_est_fire1(:,2);
-
+Fir1Store(:,2,1) = pos_est_fire1(:,2);
 % Behavior of the extension of fire 1
-sigmaFir1Stor = zeros(numUAV, 1, (T_sim-1)/dt); 
-sigmaFir1Stor(:,1,1) = sigma_est_fire1(:,1);
+Fir1Store(:,3,1) = sigma_est_fire1(:,1);
 
+
+Fir2Store = zeros(numUAV, 3, (T_sim-1)/dt+1);
 % Estimated Trajectory of X coordinate of fire 2
-posFir2StoreX = zeros(numUAV, 1, (T_sim-1)/dt); 
-posFir2StoreX(:,1,1) = pos_est_fire2(:,1);
-
+Fir2Store(:,1,1) = pos_est_fire2(:,1);
 % Estimated Trajectory of Y coordinate of fire 2
-posFir2StoreY = zeros(numUAV, 1, (T_sim-1)/dt);
-posFir2StoreY(:,1,1) = pos_est_fire2(:,2);
-
+Fir2Store(:,2,1) = pos_est_fire2(:,2);
 % Behavior of the extension of fire 2
-sigmaFir2Stor = zeros(numUAV, 1, (T_sim-1)/dt); 
-sigmaFir2Stor(:,1,1) = sigma_est_fire2(:,1);
+Fir2Store(:,3,1) = sigma_est_fire2(:,1);
 
 % Real Path of Fire 1
-posFir1StoreReal = zeros(1, 2, (T_sim-1)/dt);
-sigmaFir1StoreReal = zeros(1, (T_sim-1)/dt);
+posFir1StoreReal = zeros(1, 2, (T_sim-1)/dt+1);
+sigmaFir1StoreReal = zeros(1, (T_sim-1)/dt+1);
+
 % Real Path of Fire 2
-posFir2StoreReal = zeros(1, 2, (T_sim-1)/dt);
-sigmaFir2StoreReal = zeros(1, (T_sim-1)/dt);
+posFir2StoreReal = zeros(1, 2, (T_sim-1)/dt+1);
+sigmaFir2StoreReal = zeros(1, (T_sim-1)/dt+1);
 
 % Voronoi Edges
 vx_Data = cell(1, tot_iter); % Celle per memorizzare i dati di vx
 vy_Data = cell(1, tot_iter); % Celle per memorizzare i dati di vy
-
 
 %% Simulation
 if DO_SIMULATION
@@ -264,12 +262,14 @@ if DO_SIMULATION
         LastMeas1 = LastMeas1 + 1;
         LastMeas2 = LastMeas2 + 1;
 
-        % real fire position and extension
-        % ---- Fire 1
+        % Real fire position and extension
+
+        % Fire 1
         posFir1StoreReal(1,:,count) = pos_fire1_mov(t);
-        %sigmaFir1StoreReal(1,count) = sigma_fire1_mov(t);
+        % sigmaFir1StoreReal(1,count) = sigma_fire1_mov(t);
         sigmaFir1StoreReal(1,count) = sigma_fire1;
-        % ---- Fire 2
+
+        % Fire 2
         posFir2StoreReal(1,:,count) = pos_fire2_mov(t);
         sigmaFir2StoreReal(1,count) = sigma_fire2;
 
@@ -281,10 +281,10 @@ if DO_SIMULATION
         dist_inc2 = zeros(numUAV,1);
         dist_real_inc2 = zeros(numUAV,1);
     
-        %dist_inc2 = pdist2(pos_fire2, states_est(:,1:2)); % Distance to the second fire
+        % dist_inc2 = pdist2(pos_fire2, states_est(:,1:2)); % Distance to the second fire
         dist_wat  = pdist2(pos_water, states_est(:,1:2)); % Distance to the water source
-       
-        % If the distatnce bettween the UAV and the Real fire is small, the
+        
+        % If the distatnce between the UAV and the Real fire is small, the
         % sensors see the new position and extension
 
         dist_real_inc1(:,1) = pdist2(pos_fire1_mov(t),states(:,1:2)); % Here we use the real posititon since we are 
@@ -297,8 +297,8 @@ if DO_SIMULATION
             
             dist_inc1(i) = pdist2(pos_est_fire1(i,:), states_est(i,1:2)); % Distance to the first fire
             dist_inc2(i) = pdist2(pos_est_fire2(i,:), states_est(i,1:2)); % Distance to the second fire
-            inc_threshold1(i) = sigma_est_fire1(i,1)*0.5;
-            inc_threshold2(i) = sigma_est_fire2(i,1)*0.5; % Distance that has to be reach from the fire 2
+            inc_threshold1(i) = sigma_est_fire1(i,1) * drop_dist;
+            inc_threshold2(i) = sigma_est_fire2(i,1) * drop_dist; % Distance that has to be reach from the fire 2
 
             % --- Fire 1 ---
             if dist_real_inc1(i) <= sensor_range && objective(i) == 1 && meas_fire1(i) ~= 1    
@@ -307,7 +307,7 @@ if DO_SIMULATION
                 %sigma_est_fire1(i,1) = sigma_fire1_mov(t) + 4 * rand(1,1) - 2;
                 sigma_est_fire1(i,1) = sigma_fire1 + 4 * rand(1,1) - 2;
 
-                LastMeas1(i,:) = 1 + 5 * rand(1,numUAV);  
+                LastMeas1(i,:) = 1 + 2 * rand(1,numUAV);  
                 invLastMeas1 = 1 ./ LastMeas1;
 
                 for j = 1:numUAV
@@ -325,7 +325,7 @@ if DO_SIMULATION
                 pos_est_fire2(i,:) = pos_fire2_mov(t) + 10 * rand(1,1) - 5;
                 sigma_est_fire2(i,1) = sigma_fire2 + 4 * rand(1,1) - 2;
 
-                LastMeas2(i,:) = 1 + 5 * rand(1,numUAV);  
+                LastMeas2(i,:) = 1 + 2 * rand(1,numUAV);  
                 invLastMeas2 = 1 ./ LastMeas2;
 
                 for j = 1:numUAV
@@ -336,12 +336,11 @@ if DO_SIMULATION
                 end
                 meas_fire2(i) = 1;
             end
-
             
             % If the drone is close to a fire and its objective is 1 (heading to fire)
             if dist_inc1(i) <= inc_threshold1(i) && objective(i) == 1
                 sigma_fire1 = sigma_fire1 - deacreasingFire_factor;
-                if sigma_fire1 <=0
+                if sigma_fire1 <= 0
                     sigma_fire1 = 0;
                 end
                 objective(i) = 2; % Change objective to 2 (heading to refill water)
@@ -366,7 +365,7 @@ if DO_SIMULATION
         end
 
         %% Consensus algorithm
-        % disp(Qc);
+        % disp(Qc1);
         % We use the same matrix Q for both the coordinates and the extension
 
         % --- Fire 1 ---
@@ -374,25 +373,15 @@ if DO_SIMULATION
         pos_est_fire1(:,2) = Qc1 * pos_est_fire1(:,2);
         sigma_est_fire1(:,1) = Qc1 * sigma_est_fire1(:,1);
 
-        posFir1StoreX(:,1,count+1) = pos_est_fire1(:,1);
-        posFir1StoreY(:,1,count+1) = pos_est_fire1(:,2);
-        sigmaFir1Stor(:,1,count+1) = sigma_est_fire1(:,1);
-
         % --- Fire 2 ---
         pos_est_fire2(:,1) = Qc2 * pos_est_fire2(:,1);
         pos_est_fire2(:,2) = Qc2 * pos_est_fire2(:,2);
         sigma_est_fire2(:,1) = Qc2 * sigma_est_fire2(:,1);
 
-        posFir2StoreX(:,1,count+1) = pos_est_fire2(:,1);
-        posFir2StoreY(:,1,count+1) = pos_est_fire2(:,2);
-        sigmaFir2Stor(:,1,count+1) = sigma_est_fire2(:,1);
-
-
 
         % Compute Voronoi tessellation and velocities
-        [areas, centroids_est, control_est] = voronoi_function_FW(numUAV, dimgrid, states, Kp_z, Kp, Ka, Ke, pos_est_fire1, pos_est_fire2, ...
+        [areas, centroids_est, control_est] = voronoi_function_FW(numUAV, dimgrid, states, Kp_z, Kp, Ka, pos_est_fire1, pos_est_fire2, ...
                                                                   sigma_est_fire1, sigma_est_fire2, G_water, height_flight, scenario, objective);
-        
         
         % Impose a maximum velocity
         % The linear straight velocty has also a minimum velocity since we are considering Fixed wing UAV 
@@ -400,8 +389,7 @@ if DO_SIMULATION
         control_est(:,2) = sign(control_est(:,2)) .* min(abs(control_est(:,2)), vel_lin_z_max); % Limit linear velocity along z
         control_est(:,3) = sign(control_est(:,3)) .* min(abs(control_est(:,3)), vel_ang_max); % Limit angular velocity
 
-
-        % Decollo 
+        % TakeOff 
         if takeOff && n ~= numUAV + 1
 
             for s = n:numUAV
@@ -430,12 +418,12 @@ if DO_SIMULATION
 
             end
 
-            centroids_est_stor(k,:,count) = centroids_est(k,:);
+            
 
             % Model Simulation - REAL 
             states(k,:) = fun(states(k,:), control_est(k,:), dt);    % we use to control the real model the velocities computed using
                                                                      % the estimated states (as it will be in real applications)
-            trajectories(k,:,count) = states(k,:);
+            
 
         end
 
@@ -453,13 +441,115 @@ if DO_SIMULATION
 
             P_trace(k,count) = trace(P);
 
-            trajectories_est(k,:,count) = states_est(k,:);
+            
+            % Storing data properly during UAV fail
+            if UAV_FAIL && t >= fail_time + dt 
+                if k < ind
+
+                    trajectories(k,:,count) = states(k,:);
+                    trajectories_est(k,:,count) = states_est(k,:);
+                    centroids_est_stor(k,:,count) = centroids_est(k,:);
+
+                    Fir1Store(k,1,count) = pos_est_fire1(k,1);
+                    Fir1Store(k,2,count) = pos_est_fire1(k,2);
+                    Fir1Store(k,3,count) = sigma_est_fire1(k,1);
+
+                    Fir2Store(k,1,count) = pos_est_fire2(k,1);
+                    Fir2Store(k,2,count) = pos_est_fire2(k,2);
+                    Fir2Store(k,3,count) = sigma_est_fire2(k,1);
+
+                elseif k == ind
+
+                    trajectories(k,:,count) = trajectories(k,:,count-1);
+                    trajectories_est(k,:,count) = trajectories_est(k,:,count-1);
+                    centroids_est_stor(k,:,count) = centroids_est_stor(k,:,count-1);
+                    
+                    trajectories(k,3,count) = enviroment_surface(trajectories(k,1,count), ...
+                                                                 trajectories(k,2,count), ...
+                                                                 scenario);
+                    trajectories_est(k,3,count) = 0;
+
+                    Fir1Store(k,:,count) = [0,0,0];
+                    Fir2Store(k,:,count) = [0,0,0];
+
+                elseif k > ind
+                    trajectories(k,:,count) = states(k-1,:);
+                    trajectories_est(k,:,count) = states_est(k-1,:);
+                    centroids_est_stor(k,:,count) = centroids_est(k-1,:);
+
+                    Fir1Store(k,1,count) = pos_est_fire1(k-1,1);
+                    Fir1Store(k,2,count) = pos_est_fire1(k-1,2);
+                    Fir1Store(k,3,count) = sigma_est_fire1(k-1,1);
+
+                    Fir2Store(k,1,count) = pos_est_fire2(k-1,1);
+                    Fir2Store(k,2,count) = pos_est_fire2(k-1,2);
+                    Fir2Store(k,3,count) = sigma_est_fire2(k-1,1);
+
+                end
+
+                if k == numUAV
+                    trajectories(k+1,:,count) = states(k,:);
+                    trajectories_est(k+1,:,count) = states_est(k,:);
+                    centroids_est_stor(k+1,:,count) = centroids_est(k,:);
+
+                    Fir1Store(k+1,1,count) = pos_est_fire1(k,1);
+                    Fir1Store(k+1,2,count) = pos_est_fire1(k,2);
+                    Fir1Store(k+1,3,count) = sigma_est_fire1(k,1);
+
+                    Fir2Store(k+1,1,count) = pos_est_fire2(k,1);
+                    Fir2Store(k+1,2,count) = pos_est_fire2(k,2);
+                    Fir2Store(k+1,3,count) = sigma_est_fire2(k,1);
+                end
+
+            else
+                trajectories(k,:,count) = states(k,:);
+                trajectories_est(k,:,count) = states_est(k,:);
+                centroids_est_stor(k,:,count) = centroids_est(k,:);
+
+                Fir1Store(k,1,count) = pos_est_fire1(k,1);
+                Fir1Store(k,2,count) = pos_est_fire1(k,2);
+                Fir1Store(k,3,count) = sigma_est_fire1(k,1);
+
+                Fir2Store(k,1,count) = pos_est_fire2(k,1);
+                Fir2Store(k,2,count) = pos_est_fire2(k,2);
+                Fir2Store(k,3,count) = sigma_est_fire2(k,1);
+            end
+
         end
 
         % Save Voronoi edges
-        [vx, vy] = voronoi(trajectories_est(:,1,count), trajectories_est(:,2,count));
+        [vx, vy] = voronoi(states_est(:,1), states_est(:,2));
         vx_Data{count} = vx;
         vy_Data{count} = vy;
+
+        %% UAV fail
+        if UAV_FAIL
+            if t == fail_time
+    
+                ind = 3; % UAV that fall
+    
+                numUAV = numUAV - 1;
+    
+                states(ind,:) = [];
+                objective(ind,:) = [];
+                states_est(ind,:) = [];
+                meas_fire1(ind,:) = [];
+                meas_fire2(ind,:) = [];
+                LastMeas1(:,ind) = [];
+                LastMeas1(ind,:) = [];
+                LastMeas2(:,ind) = [];
+                LastMeas2(ind,:) = [];
+                invSumLastMeas1(:,ind) = [];
+                invSumLastMeas2(:,ind) = [];
+                Qc1 = ones(numUAV) * 1/numUAV;
+                Qc2 = ones(numUAV) * 1/numUAV;
+                pos_est_fire1(ind,:) = [];
+                pos_est_fire2(ind,:) = [];
+                sigma_est_fire1(ind,:) = [];
+                sigma_est_fire2(ind,:) = [];
+    
+            end
+        end
 
         %% Plots
         % real and estimated   
@@ -479,30 +569,46 @@ if DO_SIMULATION
     end
 
     if PLOT_TRAJECTORIES
-        plotUAVTrajectories_function(numUAV, trajectories, trajectories_est, P_trace);
+        if UAV_FAIL
+            plotUAVTrajectories_function(numUAV+1, trajectories, trajectories_est);
+        else
+            plotUAVTrajectories_function(numUAV, trajectories, trajectories_est);
+        end
+        
+    end
+
+    if PLOT_COVARIANCE_TRACE 
+        plotCovarianceTrace(numUAV,P_trace);
     end
 
     if PLOT_CONSENSUS 
-        plotConsensus_function(numUAV, posFir1StoreReal, posFir1StoreX, posFir1StoreY, sigmaFir1StoreReal, sigmaFir1Stor);  
+        plotConsensus_function(1, 20, numUAV, posFir1StoreReal, sigmaFir1StoreReal, Fir1Store);  
+        plotConsensus_function(2, 30, numUAV, posFir2StoreReal, sigmaFir2StoreReal, Fir2Store);  
     end
 
 end
 
 if ANIMATION 
-    figure_size = [300, 80, 1000, 700]; % Set figure size
+
+    if UAV_FAIL
+        numUAV = numUAV+1;
+    end
+
+    figure_size = [200, 80, 800, 700]; % Set figure size
 
     %% Plot 2D voronoi simulation
     figure(50)
-    set(gcf, 'Position',figure_size); % Set figure size
+    set(gcf, 'Position', figure_size);
     bx = subplot(1,1,1);
     axis(bx,[0 dimgrid(1) 0 dimgrid(2)]);
     xlabel(bx,'X Coordinate');
     ylabel(bx,'Y Coordinate');
+    
     view(bx,2);
     
-
      for t = 1:count
-    
+
+        figure(50)
         cla(bx);
         hold(bx,'on');
 
@@ -514,6 +620,7 @@ if ANIMATION
         end
 
         plot(bx,x_water,y_water,'o','Color', 'b', 'MarkerSize', sigma_water);
+
         for i = 1:numUAV
             % Draw the UAV pose
             drawUAV2D(trajectories(i, 1,t), trajectories(i, 2,t), trajectories(i, 4,t), dim_UAV,'k');
@@ -521,16 +628,15 @@ if ANIMATION
     
             plot(bx,centroids_est_stor(i,1,t), centroids_est_stor(i,2,t), 'x', 'Color',[0.4660, 0.6740, 0.1880]);
 
-            if sigmaFir1Stor(i,1,t) > 0
-                plot(bx,posFir1StoreX(i,1,t), posFir1StoreY(i,1,t), 'x','MarkerSize', sigmaFir1Stor(i,1,t),'Color',[0.4940, 0.1840, 0.5560]);
+            if Fir1Store(i,3,t) > 0
+                plot(bx,Fir1Store(i,1,t), Fir1Store(i,2,t), 'x','MarkerSize', Fir1Store(i,3,t),'Color',[0.4940, 0.1840, 0.5560]);
             end
-            if sigmaFir2Stor(i,1,t) > 0
-                plot(bx,posFir2StoreX(i,1,t), posFir2StoreY(i,1,t), 'x','MarkerSize', sigmaFir2Stor(i,1,t),'Color',[0.4940, 0.1840, 0.5560]);
+            if Fir2Store(i,3,t) > 0
+                plot(bx,Fir2Store(i,1,t), Fir2Store(i,2,t), 'x','MarkerSize', Fir2Store(i,3,t),'Color',[0.4940, 0.1840, 0.5560]);
             end
-            %plot(bx,posFir2StoreX(i,1,t), posFir2StoreY(i,1,t), 'x','MarkerSize', sigmaFir2Stor(i,1,t));
+            
         end
-    
-        %[vx_es, vy_es] = voronoi(trajectories_est(:,1,t), trajectories_est(:,2,t)); 
+  
         vx_es = vx_Data{t};
         vy_es = vy_Data{t};
         plot(bx,vx_es, vy_es,'Color',[0.4660, 0.6740, 0.1880]);
@@ -541,9 +647,9 @@ if ANIMATION
     end   
 
 
+
     %% Plot 3D Simulation
     figure(60);
-    set(gcf, 'Position',figure_size); % Set figure size
     ax = subplot(1,1,1);
     axis(ax,[0 dimgrid(1) 0 dimgrid(2) 0 dimgrid(3)]);
     hold(ax,'on');
@@ -561,7 +667,7 @@ if ANIMATION
     green_background = repmat(reshape([0.4660 0.6740 0.1880], 1, 1, 3), size(texture_resized, 1), size(texture_resized, 2));
 
     % Fattore di trasparenza (0 = solo sfondo verde, 1 = solo texture)
-    alpha = 0.6;  % <-- regola questo valore
+    alpha = 0.2;  % <-- regola questo valore
 
     % Mix tra texture e sfondo
     blended_texture = alpha * texture_resized + (1 - alpha) * green_background;
@@ -580,26 +686,16 @@ if ANIMATION
     
     % ─── static water circle ──────────────────────────
     theta = linspace(0,2*pi,100);
-    r = sigma_water/2;
+    r = sigma_water/2 + 20 ;
     x_circle = r*cos(theta)+x_water;
     y_circle = r*sin(theta)+y_water;
     z_circle = 5 * ones(size(theta));
     hWater = plot3(ax,x_circle, y_circle, z_circle, 'b', 'LineWidth', 2);
     
-
-%{
-     % ─── static second fire ──────────────────────────
-    hFire2 = plot3(ax,x_fire2, y_fire2, ...
-                   enviroment_surface(x_fire2,y_fire2,1), ...
-                   'x', 'Color', 'r', ...
-                   'MarkerSize', sigma_fire2, 'LineWidth', 2);
-    %}
     view(ax,3);
     grid(ax,'on');
     xlabel(ax,'X'); ylabel(ax,'Y'); zlabel(ax,'Z');
  
-
-
     
     % ——— define a simple airplane in its body‑frame ———
     fuselage = [  1;  0;  0 ];        % nose
@@ -685,14 +781,14 @@ if ANIMATION
         end
     
         % ─── update the “estimated” fire1 marker ───────────────
-        if sigmaFir1Stor(i,1,t) > 0
+        if Fir1Store(i,3,t) > 0
             set(hFireEst1, ...
-                'XData', posFir1StoreX(i,1,t), ...
-                'YData', posFir1StoreY(i,1,t), ...
+                'XData', Fir1Store(i,1,t), ...
+                'YData', Fir1Store(i,2,t), ...
                 'ZData', enviroment_surface(...
-                        posFir1StoreX(i,1,t), ...
-                        posFir1StoreY(i,1,t), 1), ...
-                        'MarkerSize', sigmaFir1Stor(i,1,t));
+                        Fir1Store(i,1,t), ...
+                        Fir1Store(i,2,t), 1), ...
+                        'MarkerSize', Fir1Store(i,3,t));
         else 
             set(hFireEst1, 'XData', NaN, 'YData', NaN, 'ZData', NaN);
         end
@@ -710,14 +806,14 @@ if ANIMATION
             set(hFireReal2, 'XData', NaN, 'YData', NaN, 'ZData', NaN);    
         end
         % ─── update the “estimated” fire2 marker ───────────────
-        if sigmaFir2Stor(i,1,t) > 0
+        if Fir2Store(i,3,t) > 0
             set(hFireEst2, ...
-                'XData', posFir2StoreX(i,1,t), ...
-                'YData', posFir2StoreY(i,1,t), ...
+                'XData', Fir2Store(i,1,t), ...
+                'YData', Fir2Store(i,2,t), ...
                 'ZData', enviroment_surface(...
-                        posFir2StoreX(i,1,t), ...
-                        posFir2StoreY(i,1,t), 1), ...
-                'MarkerSize', sigmaFir2Stor(i,1,t));
+                        Fir2Store(i,1,t), ...
+                        Fir2Store(i,2,t), 1), ...
+                'MarkerSize', Fir2Store(i,3,t));
         else
             set(hFireEst2, 'XData', NaN, 'YData', NaN, 'ZData', NaN);
         end
@@ -727,7 +823,7 @@ if ANIMATION
 
         pause(0.025); % Pause to control the speed of the animation
         
-    end 
+    end
 
 end
 

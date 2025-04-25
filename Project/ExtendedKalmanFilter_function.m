@@ -21,10 +21,7 @@ function [x, P] = ExtendedKalmanFilter_function(states_est, measure, control, A,
 
     elseif mod(count, meas_freq_ultr) == 0 && rand(1) <= probUltr
 
-        H = H(3,:);
-        R = R(3,3);
-        measure = measure(3);
-        [x,P] = update_step(x, measure, H, P, R);
+        [x,P] = update_step(x, measure(4), H(4,:), P, R(4,4));
 
     elseif mod(count, meas_freq_gyr) == 0 && rand(1) <= probGyr
 

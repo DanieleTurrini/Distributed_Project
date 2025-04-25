@@ -5,7 +5,7 @@ function height = flight_surface(x, y, h, scenario)
         
         x_w = 50;
         y_w = 50;
-        flatWidth = 50;
+        flatWidth = 40;
         width = 80;
 
         dx = x - x_w;

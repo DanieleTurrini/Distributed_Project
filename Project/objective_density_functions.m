@@ -10,6 +10,7 @@ posFireMov2 = pos_fire2(t);
 % Calcolo della distribuzione gaussiana
 G_fires = exp(-(((x_m - posFireMov1(1)).^2) / (2 * sigma_fire1^2) + ((y_m - posFireMov1(2)).^2) / (2 * sigma_fire1^2))) + ...
           exp(-(((x_m - posFireMov2(1)).^2) / (2 * sigma_fire2^2) + ((y_m - posFireMov2(2)).^2) / (2 * sigma_fire2^2)));
+
 G_water = exp(-(((x_m - pos_water(1)).^2) / (2 * sigma_water^2) + ((y_m - pos_water(2)).^2) / (2 * sigma_water^2)));
 
 if PLOT_DENSITY_FUNCTIONS
@@ -30,7 +31,7 @@ if PLOT_DENSITY_FUNCTIONS
     zLabelHeight = max(G_fires(:)) * 0.9;
     
     text(posFireMov1(1), posFireMov1(2), zLabelHeight, 'Fire 1', 'Color', 'k', 'FontSize', 12, 'FontWeight', 'bold');
-    text(pos_fire2(1), pos_fire2(2), zLabelHeight, 'Fire 2', 'Color', 'k', 'FontSize', 12, 'FontWeight', 'bold');
+    text(posFireMov2(1), posFireMov2(2), zLabelHeight, 'Fire 2', 'Color', 'k', 'FontSize', 12, 'FontWeight', 'bold');
     
     hold off;
     
