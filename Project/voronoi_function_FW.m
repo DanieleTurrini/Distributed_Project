@@ -33,6 +33,9 @@ function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, s
         elseif objective(i) == 2
             % Calcolo della massa della regione
             weights = G_water(sub2ind(size(G_water), region_points(:,2), region_points(:,1)));
+        elseif objective(i) == 3
+            % Calcolo della massa della regione
+            weights = areas(i) * ones(size(region_points, 1), 1);
         else
             error('The status variable has an invalid value');
         end

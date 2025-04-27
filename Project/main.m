@@ -5,7 +5,7 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;
-T_sim = 13;
+T_sim = 3;
 scenario = 1;
 tot_iter = (T_sim - 1)/dt + 1;
 
@@ -13,11 +13,11 @@ fail_time = 6;
 ind = 0;
 
 DO_SIMULATION = true;
-UAV_FAIL = true;
-PLOT_DENSITY_FUNCTIONS = true;
-PLOT_TRAJECTORIES = true;
-PLOT_COVARIANCE_TRACE = true;
-PLOT_CONSENSUS = true;
+UAV_FAIL = false;
+PLOT_DENSITY_FUNCTIONS = false;
+PLOT_TRAJECTORIES = false;
+PLOT_COVARIANCE_TRACE = false;
+PLOT_CONSENSUS = false;
 
 PLOT_ITERATIVE_SIMULATION = false;
 ANIMATION = true;
@@ -64,6 +64,7 @@ objective = ones(numUAV,1) * 2;     % -> objective = 1 : the UAV is filled with
                                     % water and is going to put out the fire
                                     % -> objective = 2 : the UAV is empty and is
                                     % going to refill
+                                    % -> objective = 3 : all fires estinguished
                                     % (we assume every one empty at the beginning)
 
 % Dynamics
@@ -171,7 +172,7 @@ for i = 1:numUAV
 end
 
 % Decreasing factor of the fire
-deacreasingFire_factor = 5;    % Decreasing factor of the fire extension
+deacreasingFire_factor = 40;    % Decreasing factor of the fire extension
                                 % (we assume that the fire decrease every time the UAV drop the water)
 
 %% Water Parameters
@@ -362,6 +363,13 @@ if DO_SIMULATION
 
             end
 
+            % if all the fires are extinguished, the UAVs objective is = 3 
+            if sigma_est_fire1(i,1) <= 0 && sigma_est_fire2(i,1) <= 0
+                objective(i) = 3; % Change objective to 3 (all fires estinguished)
+                meas_fire1(i) = 0;
+                meas_fire2(i) = 0;
+            end
+
         end
 
         %% Consensus algorithm
@@ -377,6 +385,15 @@ if DO_SIMULATION
         pos_est_fire2(:,1) = Qc2 * pos_est_fire2(:,1);
         pos_est_fire2(:,2) = Qc2 * pos_est_fire2(:,2);
         sigma_est_fire2(:,1) = Qc2 * sigma_est_fire2(:,1);
+
+        % if the sigma is less than a trashold, we set it to 0
+        trashold_sigma_fire = 2;
+        if sigma_est_fire1(:,1) < trashold_sigma_fire
+            sigma_est_fire1(:,1) = 0;
+        end
+        if sigma_est_fire2(:,1) < trashold_sigma_fire
+            sigma_est_fire2(:,1) = 0;
+        end
 
 
         % Compute Voronoi tessellation and velocities
@@ -413,8 +430,17 @@ if DO_SIMULATION
 
             if count_refill(k) == 0 && dist_wat(k) <= wat_threshold
 
-                objective(k) = 1; % Change objective to 1 (heading to fire)
-                meas_fire1(k) = 0;
+                % if fires are extinguished, the UAVs objective is = 3
+                if sigma_est_fire1(k,1) <= 0 && sigma_est_fire2(k,1) <= 0
+                    objective(k) = 3; % Change objective to 3 (all fires estinguished)
+                    meas_fire1(k) = 0;
+                    meas_fire2(k) = 0;
+                else
+                    objective(k) = 1; % Change objective to 1 (heading to fire)
+                    meas_fire1(k) = 0;
+                    meas_fire2(k) = 0;
+                end
+
 
             end
 
@@ -428,7 +454,7 @@ if DO_SIMULATION
         end
 
         
-        % Extended Kalman Filter
+        %% Extended Kalman Filter
         measure = (H * states' + [std_gps * randn(2, numUAV); ...
                                   std_ultrasonic * randn(1, numUAV); ...
                                   std_gyro * randn(1, numUAV)])';
@@ -594,7 +620,7 @@ if ANIMATION
         numUAV = numUAV+1;
     end
 
-    figure_size = [200, 80, 800, 700]; % Set figure size
+    figure_size = [300, 80, 900, 700]; % Set figure size
 
     %% Plot 2D voronoi simulation
     figure(50)
@@ -603,20 +629,25 @@ if ANIMATION
     axis(bx,[0 dimgrid(1) 0 dimgrid(2)]);
     xlabel(bx,'X Coordinate');
     ylabel(bx,'Y Coordinate');
-    
     view(bx,2);
     
-     for t = 1:count
+    for t = 1:2:count
 
-        figure(50)
-        cla(bx);
+        %figure(50)
+        %cla(bx);
+        title(bx,['2D Voronoi Simulation - Iteration:', num2str(t),'/', num2str(tot_iter)]);
+        cla;
         hold(bx,'on');
 
-        if sigmaFir1StoreReal(1,t) > 0 % Se incendio spento non plottare piu la X
+        if sigmaFir1StoreReal(1,t) > 0 % If fire is extinguished, do not plot the X
             plot(bx,posFir1StoreReal(1,1,t), posFir1StoreReal(1,2,t), 'rx', 'MarkerSize', sigmaFir1StoreReal(1,t));
+        else
+            % Do nothing if sigmaFir1StoreReal is <= 0
         end
-        if sigmaFir2StoreReal(1,t) > 0
+        if sigmaFir2StoreReal(1,t) > 0 % If fire is extinguished, do not plot the X
             plot(bx,posFir2StoreReal(1,1,t), posFir2StoreReal(1,2,t), 'rx', 'MarkerSize', sigmaFir2StoreReal(1,t));
+        else
+            % Do nothing if sigmaFir2StoreReal is <= 0
         end
 
         plot(bx,x_water,y_water,'o','Color', 'b', 'MarkerSize', sigma_water);
@@ -650,6 +681,7 @@ if ANIMATION
 
     %% Plot 3D Simulation
     figure(60);
+    set(gcf, 'Position', figure_size);
     ax = subplot(1,1,1);
     axis(ax,[0 dimgrid(1) 0 dimgrid(2) 0 dimgrid(3)]);
     hold(ax,'on');
@@ -745,6 +777,8 @@ if ANIMATION
     
     
     for t = 1:count
+        title(['3D Simulation - Iteration:', num2str(t),'/', num2str(tot_iter)]);
+
         % ─── update each UAV’s position ──────────────────────
         for i = 1:numUAV
     
@@ -788,7 +822,8 @@ if ANIMATION
                 'ZData', enviroment_surface(...
                         Fir1Store(i,1,t), ...
                         Fir1Store(i,2,t), 1), ...
-                        'MarkerSize', Fir1Store(i,3,t));
+                        'MarkerSize', Fir1Store(i,3,t),...
+                        'MarkerEdgeColor', [1.0, 0.5, 0.0]);
         else 
             set(hFireEst1, 'XData', NaN, 'YData', NaN, 'ZData', NaN);
         end
@@ -813,7 +848,8 @@ if ANIMATION
                 'ZData', enviroment_surface(...
                         Fir2Store(i,1,t), ...
                         Fir2Store(i,2,t), 1), ...
-                'MarkerSize', Fir2Store(i,3,t));
+                'MarkerSize', Fir2Store(i,3,t),...
+                'MarkerEdgeColor', [1.0, 0.5, 0.0]); % Orange color
         else
             set(hFireEst2, 'XData', NaN, 'YData', NaN, 'ZData', NaN);
         end
