@@ -1,15 +1,15 @@
-clear all;
+clear;
 close all;
 clc;
 
 %% Simulation Parameters 
 
 dt = 0.01;
-T_sim = 3;
+T_sim = 15;
 scenario = 1;
 tot_iter = (T_sim - 1)/dt + 1;
 
-fail_time = 2;                       % Time instant when one UAV fail 
+fail_time = 2; % Time instant when one UAV fail 
 ind = 0;
 
 DO_SIMULATION = true;
@@ -55,8 +55,10 @@ z = ones(numUAV,1) * 5;    % Start from ground
 theta = ones(numUAV,1) * (- pi/2);
 
 for i = 1:numUAV
-    y(i) = y(i) + 10 * i;
+    y(i) = y(i) + 15 * i;
 end
+% initial positions of uav
+initialUAV_pos = [x, y, z, theta];
 
 states = [x, y, z, theta];
 
@@ -370,7 +372,10 @@ if DO_SIMULATION
                 meas_fire2(i) = 0;
             end
 
+
         end
+
+        %disp(objective);
 
         %% Consensus algorithm
         % We use the same matrix Q for both the coordinates and the extension
@@ -397,7 +402,8 @@ if DO_SIMULATION
 
         % Compute Voronoi tessellation and velocities
         [areas, centroids_est, control_est] = voronoi_function_FW(numUAV, dimgrid, states, Kp_z, Kp, Ka, pos_est_fire1, pos_est_fire2, ...
-                                                                  sigma_est_fire1, sigma_est_fire2, G_water, height_flight, scenario, objective);
+                                                                  sigma_est_fire1, sigma_est_fire2, G_water, height_flight, scenario, objective,...
+                                                                  initialUAV_pos);
         
         % Impose a maximum velocity
         % The linear straight velocty has also a minimum velocity since we are considering Fixed wing UAV 
@@ -405,7 +411,27 @@ if DO_SIMULATION
         control_est(:,2) = sign(control_est(:,2)) .* min(abs(control_est(:,2)), vel_lin_z_max); % Limit linear velocity along z
         control_est(:,3) = sign(control_est(:,3)) .* min(abs(control_est(:,3)), vel_ang_max); % Limit angular velocity
 
-        % TakeOff 
+
+        %% Landing control
+        for i = 1:numUAV
+            dist_to_initial = norm(states(i,1:2) - initialUAV_pos(i,1:2));
+            if dist_to_initial < 100 && objective(i) == 3
+                % If the drone is close to the initial position, set the vertical speed
+                %control_est(i,1) = min(vel_lin_min, Kp * dist_to_initial);
+                control_est(i,2) = sign( 0.5 - states(i,3)) * min(vel_lin_z_max, Kp_z/100 * abs( 0.5 - states(i,3))); % flight_surface(initialUAV_pos(i,1),initialUAV_pos(i,1),0,1) +
+                %control_est(i,3) = Ka * ( initialUAV_pos(i,4) - states(i,4) );
+
+                if dist_to_initial < 5
+                    control_est(i,1:2) = 0;
+                    control_est(i,3) = sign(initialUAV_pos(i,4) - states(i,4)) * min(vel_ang_max, Ka * abs(initialUAV_pos(i,4) - states(i,4)));
+                end
+
+            end
+        end 
+
+
+
+        %% TakeOff 
         if takeOff && n ~= numUAV + 1
 
             for s = n:numUAV
@@ -418,9 +444,10 @@ if DO_SIMULATION
 
         end
 
+        %% Refill control
         for k = 1:numUAV
 
-            % Refill control
+            
             if count_refill(k) ~= 0
                 control_est(k,1) = vel_lin_min ;
                 control_est(k,3) = 0;
@@ -445,7 +472,7 @@ if DO_SIMULATION
 
             
 
-            % Model Simulation - REAL 
+            %% Model Simulation - REAL 
             states(k,:) = fun(states(k,:), control_est(k,:), dt);    % we use to control the real model the velocities computed using
                                                                      % the estimated states (as it will be in real applications)
            
