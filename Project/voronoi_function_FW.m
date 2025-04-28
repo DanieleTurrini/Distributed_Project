@@ -1,4 +1,4 @@
-function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, states, Kp_z, Kp, Ka, pos_est_fire1, pos_est_fire2, sigma_est_fire1, sigma_est_fire2, G_water,height_flight, scenario, objective, initialUAV_pos)
+function [areas, weigth_centroids, vel] = voronoi_function_FW(count, numUAV, dimgrid, states, Kp_z, Kp, Ka, pos_est_fire1, pos_est_fire2, sigma_est_fire1, sigma_est_fire2, G_water,height_flight, scenario, objective, initialUAV_pos)
 
     % Crea una griglia di punti con le dimensioni specificate da dimgrid
     [X, Y] = meshgrid(1:dimgrid(1), 1:dimgrid(2));
@@ -21,8 +21,8 @@ function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, s
     for i = 1:numUAV
 
 
-        G_fire = fires_dens_function(dimgrid, pos_est_fire1(i,:), pos_est_fire2(i,:), sigma_est_fire1(i,1), sigma_est_fire2(i,1));
-
+        G_fire = fires_dens_function(dimgrid, pos_est_fire1(i,:), pos_est_fire2(i,:), sigma_est_fire1(i,1), sigma_est_fire2(i,1)) ;
+        
         % Estrai i punti della regione assegnata al drone i
         region_points = voronoi_grid(minimum_indices == i, :); % Punti della regione
 
@@ -37,7 +37,7 @@ function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, s
             weights = G_water(sub2ind(size(G_water), region_points(:,2), region_points(:,1)));
         elseif objective(i) == 3
             % Calcolo della massa della regione
-            %weights = areas(i) * ones(size(region_points, 1), 1);
+            % weights = areas(i) * ones(size(region_points, 1), 1);
             weights = exp(-vecnorm(region_points - initialUAV_pos(i, 1:2), 2, 2));
         else
             error('The status variable has an invalid value');
@@ -58,9 +58,17 @@ function [areas, weigth_centroids, vel] = voronoi_function_FW(numUAV, dimgrid, s
         % Control velocity on z
         vel(i,2) = Kp_z * (flight_surface(states(i,1), states(i,2), height_flight, scenario) - states(i,3));
 
-
         
     end
+    
+    % if mod(count, 10) == 0 && count > 500
+    %     figure(100);
+    %     clf;
+    %     surf(X, Y, G_fire, 'FaceAlpha', 0.8);
+    %     shading interp; % Makes the surface smoother
+    %     colormap jet;
+    %     colorbar;
+    % end
 
     
 end

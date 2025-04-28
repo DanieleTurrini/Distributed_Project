@@ -5,19 +5,19 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;
-T_sim = 15;
+T_sim = 32;
 scenario = 1;
 tot_iter = (T_sim - 1)/dt + 1;
 
-fail_time = 2; % Time instant when one UAV fail 
+fail_time = 6; % Time instant when one UAV fail 
 ind = 0;
 
 DO_SIMULATION = true;
-UAV_FAIL = false;
-PLOT_DENSITY_FUNCTIONS = false;
-PLOT_TRAJECTORIES = false;
-PLOT_COVARIANCE_TRACE = false;
-PLOT_CONSENSUS = false;
+UAV_FAIL = true;
+PLOT_DENSITY_FUNCTIONS = true;
+PLOT_TRAJECTORIES = true;
+PLOT_COVARIANCE_TRACE = true;
+PLOT_CONSENSUS = true;
 
 PLOT_ITERATIVE_SIMULATION = false;
 ANIMATION = true;
@@ -41,7 +41,7 @@ height_flight = 30;                 % Height of flight from the ground
 
 % Take Off
 takeOff = true;
-freq_takeOff = 20;                  % Time distance between each takeoff 
+freq_takeOff = 30;                  % Time distance between each takeoff 
 n = 1;
 
 % Refill
@@ -51,12 +51,14 @@ count_refill = zeros(numUAV,1);
 % Starting points
 x = ones(numUAV,1) * 50;   % Random x coordinates
 y = ones(numUAV,1) * 250;  % Random y coordinates
-z = ones(numUAV,1) * 5;    % Start from ground
+z = ones(numUAV,1);    % Start from ground
 theta = ones(numUAV,1) * (- pi/2);
 
 for i = 1:numUAV
-    y(i) = y(i) + 15 * i;
+    y(i) = y(i) + 30 * i;
+    z(i) = enviroment_surface(x(i),y(i),scenario) + 0.2;
 end
+
 % initial positions of uav
 initialUAV_pos = [x, y, z, theta];
 
@@ -146,12 +148,12 @@ pos_fire2_start = [x_fire2 , y_fire2];
 
 pos_fire1_mov = @(t) [x_fire1 - 5 * (t - 1) , y_fire1 - 2 * (t - 1)]; % t start from 1
 % sigma_fire1_mov = @(t) 40 - 1 * (t - 1);
-sigma_fire1 = 40;   % Standard deviation of the first fire
+sigma_fire1 = 50;   % Standard deviation of the first fire
                     % (correspond to the extention of the fire)
 
 
 pos_fire2_mov = @(t) [x_fire2 - 2.5 * (t - 1) , y_fire2 + 1 * (t - 1)]; % t start from 1
-sigma_fire2 = 15;   % Standard deviation of the second fire
+sigma_fire2 = 20;   % Standard deviation of the second fire
                     % (correspond to the extention of the fire)
 
 inc_threshold1 = sigma_fire1 * drop_dist;  % Distance that has to be reach from the fire 1 
@@ -174,7 +176,7 @@ for i = 1:numUAV
 end
 
 % Decreasing factor of the fire
-deacreasingFire_factor = 40;    % Decreasing factor of the fire extension
+deacreasingFire_factor = 5;    % Decreasing factor of the fire extension
                                 % (we assume that the fire decrease every time the UAV drop the water)
 
 %% Water Parameters
@@ -254,6 +256,15 @@ sigmaFir2StoreReal = zeros(1, (T_sim-1)/dt+1);
 % Voronoi Edges
 vx_Data = cell(1, tot_iter); % Celle per memorizzare i dati di vx
 vy_Data = cell(1, tot_iter); % Celle per memorizzare i dati di vy
+
+% Creazione della griglia di punti
+[x_m, y_m] = meshgrid(1:dimgrid(1), 1:dimgrid(2));
+
+figure(100);
+xlabel('X');
+ylabel('Y');
+zlabel('Density');
+title('Fires density function');
 
 %% Simulation
 if DO_SIMULATION
@@ -344,7 +355,7 @@ if DO_SIMULATION
             if dist_inc1(i) <= inc_threshold1(i) && objective(i) == 1
                 sigma_fire1 = sigma_fire1 - deacreasingFire_factor;
                 if sigma_fire1 <= 0
-                    sigma_fire1 = 0;
+                    % sigma_fire1 = 0;
                 end
                 objective(i) = 2; % Change objective to 2 (heading to refill water)
                 meas_fire1(i) = 0;
@@ -352,7 +363,7 @@ if DO_SIMULATION
             elseif dist_inc2(i) <= inc_threshold2(i) && objective(i) == 1
                 sigma_fire2 = sigma_fire2 - deacreasingFire_factor;
                 if sigma_fire2 <= 0
-                    sigma_fire2 = 0;
+                    % sigma_fire2 = 0;
                 end
                 objective(i) = 2; % Change objective to 2 (heading to refill water)
                 meas_fire1(i) = 0;
@@ -367,15 +378,15 @@ if DO_SIMULATION
 
             % if all the fires are extinguished, the UAVs objective is = 3 
             if sigma_est_fire1(i,1) <= 0 && sigma_est_fire2(i,1) <= 0
+                disp('ALL FIRE ESTINGUISHED');
                 objective(i) = 3; % Change objective to 3 (all fires estinguished)
                 meas_fire1(i) = 0;
                 meas_fire2(i) = 0;
             end
 
-
         end
 
-        %disp(objective);
+        % disp(objective);
 
         %% Consensus algorithm
         % We use the same matrix Q for both the coordinates and the extension
@@ -391,7 +402,7 @@ if DO_SIMULATION
         sigma_est_fire2(:,1) = Qc2 * sigma_est_fire2(:,1);
 
         % if the sigma is less than a trashold, we set it to 0
-        trashold_sigma_fire = 2;
+        trashold_sigma_fire = 10;
         if sigma_est_fire1(:,1) < trashold_sigma_fire
             sigma_est_fire1(:,1) = 0;
         end
@@ -401,7 +412,7 @@ if DO_SIMULATION
 
 
         % Compute Voronoi tessellation and velocities
-        [areas, centroids_est, control_est] = voronoi_function_FW(numUAV, dimgrid, states, Kp_z, Kp, Ka, pos_est_fire1, pos_est_fire2, ...
+        [areas, centroids_est, control_est] = voronoi_function_FW(count,numUAV, dimgrid, states, Kp_z, Kp, Ka, pos_est_fire1, pos_est_fire2, ...
                                                                   sigma_est_fire1, sigma_est_fire2, G_water, height_flight, scenario, objective,...
                                                                   initialUAV_pos);
         
@@ -423,7 +434,7 @@ if DO_SIMULATION
 
                 if dist_to_initial < 5
                     control_est(i,1:2) = 0;
-                    control_est(i,3) = sign(initialUAV_pos(i,4) - states(i,4)) * min(vel_ang_max, Ka * abs(initialUAV_pos(i,4) - states(i,4)));
+                    % control_est(i,3) = sign(initialUAV_pos(i,4) - states(i,4)) * min(vel_ang_max, Ka * abs(initialUAV_pos(i,4) - states(i,4)));
                 end
 
             end
@@ -674,8 +685,8 @@ if ANIMATION
     
     for t = 1:2:count
 
-        %figure(50)
-        %cla(bx);
+        figure(50)
+        cla(bx);
         title(bx,['2D Voronoi Simulation - Iteration:', num2str(t),'/', num2str(tot_iter)]);
         cla;
         hold(bx,'on');
