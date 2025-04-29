@@ -5,18 +5,16 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;
-T_sim = 32;
+T_sim = 15;
 scenario = 1;
 tot_iter = (T_sim - 1)/dt + 1;
 
-fail_time = 6; % Time instant when one UAV fail 
-ind = 0;
 
 DO_SIMULATION = true;
 UAV_FAIL = true;
-PLOT_DENSITY_FUNCTIONS = true;
-PLOT_TRAJECTORIES = true;
-PLOT_COVARIANCE_TRACE = true;
+PLOT_DENSITY_FUNCTIONS = false;
+PLOT_TRAJECTORIES = false;
+PLOT_COVARIANCE_TRACE = false;
 PLOT_CONSENSUS = true;
 
 PLOT_ITERATIVE_SIMULATION = false;
@@ -77,6 +75,16 @@ fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
                            state(2) + u(1) * sin(state(4)) * deltat, ...
                            state(3) + u(2) * deltat, ...
                            state(4) + u(3) * deltat];
+
+%% UAV Fail paramters
+UAV_check_fail = false; % Check if the UAV is failed
+fail_time = 8; % Time instant when one UAV fail 
+ind = 3; % UAV that fails
+check = ones(numUAV, 1); % they periodically exchange the check 
+check_treshold = 10; % if the check of that UAV is 1 for 10 times, it is
+                        % considered failed 
+check_count = zeros(numUAV, 1);
+communication_prob = 0.05; % Probability of NOT communication
 
 %% Measurement Parameters
 
@@ -176,7 +184,7 @@ for i = 1:numUAV
 end
 
 % Decreasing factor of the fire
-deacreasingFire_factor = 5;    % Decreasing factor of the fire extension
+deacreasingFire_factor = 8;    % Decreasing factor of the fire extension
                                 % (we assume that the fire decrease every time the UAV drop the water)
 
 %% Water Parameters
@@ -253,6 +261,13 @@ sigmaFir1StoreReal = zeros(1, (T_sim-1)/dt+1);
 posFir2StoreReal = zeros(1, 2, (T_sim-1)/dt+1);
 sigmaFir2StoreReal = zeros(1, (T_sim-1)/dt+1);
 
+% Initialization of the distances from fires and water source for each drone
+dist_inc1 = zeros(numUAV,1); 
+dist_real_inc1 = zeros(numUAV,1);
+
+dist_inc2 = zeros(numUAV,1);
+dist_real_inc2 = zeros(numUAV,1);
+
 % Voronoi Edges
 vx_Data = cell(1, tot_iter); % Celle per memorizzare i dati di vx
 vy_Data = cell(1, tot_iter); % Celle per memorizzare i dati di vy
@@ -276,6 +291,41 @@ if DO_SIMULATION
         LastMeas1 = LastMeas1 + 1;
         LastMeas2 = LastMeas2 + 1;
 
+        %% Check commumication
+        % See if communication is present
+        for k = 1:numUAV
+            if rand(1) < communication_prob && count > 1
+                check(k) = 0; % NO communication
+            else
+                check(k) = 1; % YES communication
+            end
+
+            if UAV_FAIL && t >= fail_time + dt
+                check(ind) = 0;
+            end
+
+            if check(k) == 0 % NO communication
+                check_count(k) = check_count(k) + 1;
+
+                % Set the previous position and fire estimation
+                states_est(k,:) = trajectories_est(k,:,count-1);
+                pos_est_fire1(k,:) = Fir1Store(k,1:2,count-1);
+                pos_est_fire2(k,:) = Fir2Store(k,1:2,count-1);
+                sigma_est_fire1(k,1) = Fir1Store(k,3,count-1);
+                sigma_est_fire2(k,1) = Fir2Store(k,3,count-1);
+
+
+
+            else
+                check_count(k) = 0;
+            end
+            
+            if check_count(k) >= check_treshold
+                UAV_check_fail = true;
+                ind_est = k;
+            end
+        end 
+
         % Real fire position and extension
 
         % Fire 1
@@ -287,14 +337,7 @@ if DO_SIMULATION
         posFir2StoreReal(1,:,count) = pos_fire2_mov(t);
         sigmaFir2StoreReal(1,count) = sigma_fire2;
 
-
-        % Compute the distances from fires and water source for each drone
-        dist_inc1 = zeros(numUAV,1); 
-        dist_real_inc1 = zeros(numUAV,1);
-
-        dist_inc2 = zeros(numUAV,1);
-        dist_real_inc2 = zeros(numUAV,1);
-    
+        % compute the distance from the fire and the water source
         % dist_inc2 = pdist2(pos_fire2, states_est(:,1:2)); % Distance to the second fire
         dist_wat  = pdist2(pos_water, states_est(:,1:2)); % Distance to the water source
         
@@ -412,15 +455,21 @@ if DO_SIMULATION
 
 
         % Compute Voronoi tessellation and velocities
-        [areas, centroids_est, control_est] = voronoi_function_FW(count,numUAV, dimgrid, states, Kp_z, Kp, Ka, pos_est_fire1, pos_est_fire2, ...
+        [areas, centroids_est, control_est] = voronoi_function_FW(count,numUAV, dimgrid, states_est, Kp_z, Kp, Ka, pos_est_fire1, pos_est_fire2, ...
                                                                   sigma_est_fire1, sigma_est_fire2, G_water, height_flight, scenario, objective,...
                                                                   initialUAV_pos);
+                                                                  
         
         % Impose a maximum velocity
         % The linear straight velocty has also a minimum velocity since we are considering Fixed wing UAV 
         control_est(:,1) = sign(control_est(:,1)) .* max(min(abs(control_est(:,1)), vel_lin_max), vel_lin_min); % Linear velocity 
         control_est(:,2) = sign(control_est(:,2)) .* min(abs(control_est(:,2)), vel_lin_z_max); % Limit linear velocity along z
         control_est(:,3) = sign(control_est(:,3)) .* min(abs(control_est(:,3)), vel_ang_max); % Limit angular velocity
+
+        % If the UAV broke
+        if UAV_FAIL && t >= fail_time + dt && UAV_check_fail == false
+            control_est(ind,:) = [0,0,0];
+        end 
 
 
         %% Landing control
@@ -498,14 +547,22 @@ if DO_SIMULATION
         for k = 1:numUAV
 
             [states_est(k,:), P] = ExtendedKalmanFilter_function(states_est(k,:), ...
-                measure(k,:), control_est(k,:), A, G, fun, Q, H, R, P, count, ...
-                meas_freq_GPS, meas_freq_ultr, meas_freq_gyr, dt);
+                                            measure(k,:), control_est(k,:), A, G, fun, Q, H, R, P, count, ...
+                                            meas_freq_GPS, meas_freq_ultr, meas_freq_gyr, dt);
 
             P_trace(k,count) = trace(P);
+        end
 
-            
+        % Save Voronoi edges
+        [vx, vy] = voronoi(states_est(:,1), states_est(:,2));
+        vx_Data{count} = vx;
+        vy_Data{count} = vy;
+
+        %% UAV fail 
+        for k = 1:numUAV
+
             % Storing data properly during UAV fail
-            if UAV_FAIL && t >= fail_time + dt 
+            if UAV_FAIL && t >= fail_time + dt
                 if k < ind
 
                     trajectories(k,:,count) = states(k,:);
@@ -586,36 +643,29 @@ if DO_SIMULATION
 
         end
 
-        % Save Voronoi edges
-        [vx, vy] = voronoi(states_est(:,1), states_est(:,2));
-        vx_Data{count} = vx;
-        vy_Data{count} = vy;
-
-        %% UAV fail
-        if UAV_FAIL
+        % UAV fail save parameters
+        if UAV_FAIL && UAV_check_fail == true
             if t == fail_time
-    
-                ind = 3; % UAV that fall
-    
+        
                 numUAV = numUAV - 1;
     
-                states(ind,:) = [];
-                objective(ind,:) = [];
-                states_est(ind,:) = [];
-                meas_fire1(ind,:) = [];
-                meas_fire2(ind,:) = [];
-                LastMeas1(:,ind) = [];
-                LastMeas1(ind,:) = [];
-                LastMeas2(:,ind) = [];
-                LastMeas2(ind,:) = [];
-                invSumLastMeas1(:,ind) = [];
-                invSumLastMeas2(:,ind) = [];
+                states(ind_est,:) = [];
+                objective(ind_est,:) = [];
+                states_est(ind_est,:) = [];
+                meas_fire1(ind_est,:) = [];
+                meas_fire2(ind_est,:) = [];
+                LastMeas1(:,ind_est) = [];
+                LastMeas1(ind_est,:) = [];
+                LastMeas2(:,ind_est) = [];
+                LastMeas2(ind_est,:) = [];
+                invSumLastMeas1(:,ind_est) = [];
+                invSumLastMeas2(:,ind_est) = [];
                 Qc1 = ones(numUAV) * 1/numUAV;
                 Qc2 = ones(numUAV) * 1/numUAV;
-                pos_est_fire1(ind,:) = [];
-                pos_est_fire2(ind,:) = [];
-                sigma_est_fire1(ind,:) = [];
-                sigma_est_fire2(ind,:) = [];
+                pos_est_fire1(ind_est,:) = [];
+                pos_est_fire2(ind_est,:) = [];
+                sigma_est_fire1(ind_est,:) = [];
+                sigma_est_fire2(ind_est,:) = [];
     
             end
         end
@@ -624,7 +674,7 @@ if DO_SIMULATION
         % real and estimated   
         if PLOT_ITERATIVE_SIMULATION
 
-            curr_fire1_pos = pos_fire1_mov(t);
+            curr_fire1_pos = pos_fire1_mov(t); 
             %curr_fire1_sig = sigma_fire1_mov(t);
             curr_fire1_sig = sigma_fire1;
             plotSimulation_function(states, states_est, centroids_est, numUAV, dimgrid, pos_est_fire1, curr_fire1_pos(1), ...
@@ -754,7 +804,7 @@ if ANIMATION
     alpha = 0.2;  % <-- regola questo valore
 
     % Mix tra texture e sfondo
-    blended_texture = alpha * texture_resized + (1 - alpha) * green_background;
+    blended_texture = (alpha * texture_resized + (1 - alpha) * green_background);
 
     % ─── static terrain ───────────────────────────────
     surf(ax, Xf, Yf, Zf, 'CData', flip(blended_texture, 1), ...
