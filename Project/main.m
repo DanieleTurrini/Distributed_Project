@@ -4,14 +4,15 @@ clc;
 
 %% Simulation Parameters 
 
-dt = 0.01;
-T_sim = 25;
-scenario = 1;
-tot_iter = round((T_sim - 1)/dt + 1);
+dt = 0.01;                                      % Time step
+T_sim = 10;                                     % Simulation time
+scenario = 1;                                   % Environment choosen
+tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
 
 DO_SIMULATION = true;
 UAV_FAIL = true;
+PLOT_ENVIROMENT = true;
 PLOT_DENSITY_FUNCTIONS = false;
 PLOT_TRAJECTORIES = false;
 PLOT_COVARIANCE_TRACE = false;
@@ -27,9 +28,9 @@ end
 %% Vehicles Parameters 
 
 vel_lin_max = 100 ;                 % Maximum linear velocity [m/s]
-vel_lin_min = 70 ;                  % Minimum linear velocity [m/s]
+vel_lin_min = 50 ;                  % Minimum linear velocity [m/s]
 vel_lin_z_max = 100 ;               % Maximum linear velocity along z [m/s]
-vel_ang_max = 20 ;                  % Maximum angular velocity [rad/s]
+vel_ang_max = 15 ;                  % Maximum angular velocity [rad/s]
 dim_UAV = 4;                        % Dimension of the UAV
 numUAV = 5;                         % Number of UAV
 Kp_z = 100;                         % Proportional gain for the linear velocity along z
@@ -57,80 +58,79 @@ for i = 1:numUAV
     z(i) = enviroment_surface(x(i),y(i),scenario) + 0.2;
 end
 
-% initial positions of uav
 initialUAV_pos = [x, y, z, theta];
 
 states = [x, y, z, theta];
 
 objective = ones(numUAV,1) * 2;     % -> objective = 1 : the UAV is filled with
                                     % water and is going to put out the fire
+
                                     % -> objective = 2 : the UAV is empty and is
                                     % going to refill
+
                                     % -> objective = 3 : all fires estinguished
                                     % (we assume every one empty at the beginning)
 
 % Dynamics
-
 fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
                            state(2) + u(1) * sin(state(4)) * deltat, ...
                            state(3) + u(2) * deltat, ...
                            state(4) + u(3) * deltat];
 
 %% UAV Fail paramters
-UAV_check_fail = false; % Check if the UAV is failed
-fail_time = 16; % Time instant when one UAV fail 
-ind = 3; % UAV that fails
-check = ones(numUAV, 1); % they periodically exchange the check 
-check_treshold = 10; % if the check of that UAV is 1 for 10 times, it is
-                        % considered failed 
+
+UAV_check_fail = false;             % Check if the UAV is failed
+fail_time = 5;                      % Time instant when one UAV fail 
+ind = 3;                            % UAV that fails
+check = ones(numUAV, 1);            % Variable that they periodically exchange 
+check_treshold = 10;                % If the check of that UAV is 1 for 10 times,
+                                    % it is considered failed 
 check_once = true;
 check_count = zeros(numUAV, 1);
-communication_prob = 0.05; % Probability of NOT communication
+communication_prob = 0.05;          % Probability of NOT communication
 
 %% Measurement Parameters
 
-% Measurements frequency [cs]
+% Measurements frequencies
 meas_freq_GPS = 20; % 5 Hz
 meas_freq_ultr = 4; % 25 Hz
 meas_freq_gyr = 1; % 50 Hz
 
-std_gps = 3; % Standard deviation of the GPS
-std_ultrasonic = 2; % Standard deviation of the ultrasonic sensor
-std_gyro = 1; % Standard deviation of the gyroscope
-R = diag([std_gps^2, std_gps^2, std_ultrasonic^2, std_gyro^2]); % Covariance of the measurement noise
+% Standard deviations
+std_gps = 3;                                                        % Standard deviation of the GPS
+std_ultrasonic = 1.5;                                               % Standard deviation of the ultrasonic sensor
+std_gyro = 0.3;                                                     % Standard deviation of the gyroscope
+R = diag([std_gps^2, std_gps^2, std_ultrasonic^2, std_gyro^2]);     % Covariance of the measurement noise
 
 %% Kalman Filter Parameters
 
 % Jacobian of the state model
-% !!! WE ASSUME THE CONTROL AS INDIPENDENT FROM THE STATE -> we put uncertanty in the control !!!
 A = @(u, theta, deltat) [1, 0, 0, -u(1) * sin(theta) * deltat;
                          0, 1, 0,  u(1) * cos(theta) * deltat;
                          0, 0, 1,                           0;
                          0, 0, 0,                           1];
 
-% Matrix of the propagation of the process noise for (x,y,z,theta) 4x4
-% We considered the niose as white and related to the uncertanty in the
-% control (is our uncertanty in the model)
+% Matrix of the propagation of the process noise 
 G = @(theta, deltat) [cos(theta) * deltat,      0,      0;
                       sin(theta) * deltat,      0,      0;
                                         0, deltat,      0;
                                         0,      0, deltat];
 
 % Covariance of the process noise
-std_u = [2, 2, 2]; % Uncertainty on the velocity linear in x-y , linear in z and angular velocity
-Q = diag(std_u.^2);
+std_u = [1, 1, 1];                  % Uncertainty on the linear velocity in x-y , 
+                                    % linear velocity in z and angular velocity
+Q = diag(std_u.^2);                 % Covariance matrix of model and control uncertanty
 
 
 % Initial state (x,y,z,theta)
 states_est = (states' + [std_gps * randn(2, numUAV); zeros(1, numUAV); std_gyro * randn(1, numUAV)])';
 
 % Observation matrix (H)
-H = [1,0,0,    0;
-     0,1,0,    0;
-     0,0,1,    0;
-     0,0,0, 1/dt];  % ( me measure theta with a gyroscope, it measure
-                    %   the angular velocity so we have
-                    %   to multiply it by the time step )
+H = [1, 0, 0,    0;
+     0, 1, 0,    0;
+     0, 0, 1,    0;
+     0, 0, 0, 1/dt];  % (we measure theta with a gyroscope, 
+                    %  it measure the angular velocity)
 
 % Covariance matrix of the initial estimate
 P = eye(4) * 30; % We consider some starting uncertanty
@@ -141,8 +141,8 @@ dimgrid = [500 500 500];   % Define the dimensions of the grid
 
 %% Fires Parameters
 
-drop_dist = 0.6; % Percentage of the distance from the center of 
-                 % the fire that has to be reached until drop the water 
+drop_dist = 0.6;         % Percentage of the distance from the center of 
+                         % the fire that has to be reached until drop the water 
 
 % Fires Positions
 x_fire1 = 300;
@@ -152,21 +152,20 @@ y_fire2 = 50;
 
 pos_fire1_start = [x_fire1 , y_fire1];
 pos_fire2_start = [x_fire2 , y_fire2];
-% sigma_fire1_start = 40;   % Standard deviation of the first fire
-                          % (correspond to the extention of the fire)
 
+% Simulated moving fire 1
 pos_fire1_mov = @(t) [x_fire1 - 5 * (t - 1) , y_fire1 - 2 * (t - 1)]; % t start from 1
-% sigma_fire1_mov = @(t) 40 - 1 * (t - 1);
-sigma_fire1 = 50;   % Standard deviation of the first fire
-                    % (correspond to the extention of the fire)
 
+sigma_fire1 = 50;                           % Standard deviation of the first fire
+                                            % (corresponding to the extention of the fire)
 
+% Simulated moving fire 2
 pos_fire2_mov = @(t) [x_fire2 - 2.5 * (t - 1) , y_fire2 + 1 * (t - 1)]; % t start from 1
-sigma_fire2 = 20;   % Standard deviation of the second fire
-                    % (correspond to the extention of the fire)
+sigma_fire2 = 20;                           % Standard deviation of the second fire
+                                            % (corresponding to the extention of the fire)
 
-inc_threshold1 = sigma_fire1 * drop_dist;  % Distance that has to be reach from the fire 1 
-inc_threshold2 = sigma_fire2 * drop_dist;  % Distance that has to be reach from the fire 2
+inc_threshold1 = sigma_fire1 * drop_dist;   % Distance that has to be reach from the fire 1 
+inc_threshold2 = sigma_fire2 * drop_dist;   % Distance that has to be reach from the fire 2
 
 pos_est_fire1 = zeros(numUAV,2);
 sigma_est_fire1 = zeros(numUAV,1);
@@ -175,18 +174,17 @@ sigma_est_fire2 = zeros(numUAV,1);
 
 for i = 1:numUAV
     % --- Fire 1 ---
-    pos_est_fire1(i,:) = pos_fire1_mov(1);          % Initialize the estimated positions of fire 1
-    %sigma_est_fire1(i,1) = sigma_fire1_mov(1);      % Initialize the estimated extension of fire 1
-    sigma_est_fire1(i,1) = sigma_fire1;
+    pos_est_fire1(i,:) = pos_fire1_mov(1);                 % Initialize the estimated positions of fire 1
+    sigma_est_fire1(i,1) = sigma_fire1;                    % Initialize the estimated extension of fire 1
 
     % --- Fire 2 ---
     pos_est_fire2(i,:) = pos_fire2_mov(1);                 % Initialize the estimated positions of fire 2
-    sigma_est_fire2(i,1) = sigma_fire2;             % Initialize the estimated extension of fire 2
+    sigma_est_fire2(i,1) = sigma_fire2;                    % Initialize the estimated extension of fire 2
 end
 
 % Decreasing factor of the fire
-deacreasingFire_factor = 8;    % Decreasing factor of the fire extension
-                                % (we assume that the fire decrease every time the UAV drop the water)
+deacreasingFire_factor = 8;                 % Decreasing factor of the fire extension
+                                            % (we assume that the fire decrease every time the UAV drop the water)
 
 %% Water Parameters
 
@@ -197,17 +195,19 @@ y_water = 50;
 pos_water = [x_water, y_water];
 
 sigma_water = 40;
-wat_threshold = 30;   % Distance that has to be reach from the water source to refill
+wat_threshold = 30;                         % Distance that has to be reach from the water source to refill
 
-% Density Functions for the fires and the water
+%%  Density Functions for the fires and the water
+
 [G_fire,G_water] = objective_density_functions(dimgrid, pos_fire1_mov, pos_fire2_mov, pos_water, sigma_fire1, sigma_fire2, sigma_water, 0, PLOT_DENSITY_FUNCTIONS);
 
-[Xf, Yf, Zf] = plot_enviroment_surface(false);
+%% Enviroment 
 
+[Xf, Yf, Zf] = plot_enviroment_surface(PLOT_ENVIROMENT);
 
 %% Consensus Parameters
 
-sensor_range = 70; % Infrared measurement distance
+sensor_range = 70;                          % Infrared measurement distance
 meas_fire1 = zeros(numUAV,1);
 meas_fire2 = zeros(numUAV,1);
 
@@ -218,8 +218,8 @@ LastMeas2 = ones(numUAV,numUAV) + 6 * rand(numUAV,numUAV) - 3;           % At th
 invSumLastMeas1 = ones(1,numUAV);
 invSumLastMeas2 = ones(1,numUAV);
 
-Qc1 = ones(numUAV) * 1/numUAV;                   % Initialization of matrix Q for fire 1
-Qc2 = ones(numUAV) * 1/numUAV;                   % Initialization of matrix Q for fire 2
+Qc1 = ones(numUAV) * 1/numUAV;               % Initialization of matrix Q for fire 1
+Qc2 = ones(numUAV) * 1/numUAV;               % Initialization of matrix Q for fire 2
  
 
 %% Save Matrices Declaration
