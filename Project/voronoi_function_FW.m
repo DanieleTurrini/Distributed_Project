@@ -1,4 +1,4 @@
-function [areas, weigth_centroids, vel] = voronoi_function_FW(count, numUAV, dimgrid, states, Kp_z, Kp, Ka, pos_est_fire1, pos_est_fire2, sigma_est_fire1, sigma_est_fire2, G_water,height_flight, scenario, objective, initialUAV_pos)
+function [areas, weigth_centroids, vel] = voronoi_function_FW( numUAV, dimgrid, states, Kp_z, Kp, Ka, pos_est_fire1, pos_est_fire2, sigma_est_fire1, sigma_est_fire2, G_water,height_flight, scenario, objective, initialUAV_pos)
 
     % Crea una griglia di punti con le dimensioni specificate da dimgrid
     [X, Y] = meshgrid(1:dimgrid(1), 1:dimgrid(2));
@@ -60,15 +60,5 @@ function [areas, weigth_centroids, vel] = voronoi_function_FW(count, numUAV, dim
 
         
     end
-    
-    % if mod(count, 10) == 0 && count > 500
-    %     figure(100);
-    %     clf;
-    %     surf(X, Y, G_fire, 'FaceAlpha', 0.8);
-    %     shading interp; % Makes the surface smoother
-    %     colormap jet;
-    %     colorbar;
-    % end
-
     
 end
