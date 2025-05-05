@@ -1,21 +1,21 @@
-function plotUAVTrajectories_function(numUAV, trajectories, trajectories_est)
-    % Funzione per generare i grafici delle traiettorie e della covarianza per ciascun UAV
+function plotUAVTrajectories_function(numUAV, trajectories, trajectories_est, Dimgrid)
+    % Function to generate trajectory and covariance plots for each UAV
     %
     % Input:
-    %   numUAV - Numero di UAV
-    %   trajectories - Traiettorie reali (numUAV x 4 x time)
-    %   trajectories_est - Traiettorie stimate (numUAV x 4 x time)
-    %   P_trace - Traccia della matrice di covarianza (numUAV x time)
+    %   numUAV - Number of UAVs
+    %   trajectories - Real trajectories (numUAV x 4 x time)
+    %   trajectories_est - Estimated trajectories (numUAV x 4 x time)
+    %   Dimgrid - Dimensions of the grid [X, Y]
 
     for i = 1:numUAV
-        % Figura per le traiettorie
+        % Figure for trajectories
         figure(4 + i);
         
         % X-Dimension
         subplot(4,1,1);
-        plot(squeeze(trajectories(i,1,:)), 'b');
+        plot(squeeze(trajectories(i,1,:)), 'b'); % Plot real trajectory in blue
         hold on;
-        plot(squeeze(trajectories_est(i,1,:)), 'r--');
+        plot(squeeze(trajectories_est(i,1,:)), 'r--'); % Plot estimated trajectory in red dashed line
         hold off;
         xlabel('Time');
         ylabel('X');
@@ -24,9 +24,9 @@ function plotUAVTrajectories_function(numUAV, trajectories, trajectories_est)
 
         % Y-Dimension
         subplot(4,1,2);
-        plot(squeeze(trajectories(i,2,:)), 'b');
+        plot(squeeze(trajectories(i,2,:)), 'b'); % Plot real trajectory in blue
         hold on;
-        plot(squeeze(trajectories_est(i,2,:)), 'r--');
+        plot(squeeze(trajectories_est(i,2,:)), 'r--'); % Plot estimated trajectory in red dashed line
         hold off;
         xlabel('Time');
         ylabel('Y');
@@ -35,9 +35,9 @@ function plotUAVTrajectories_function(numUAV, trajectories, trajectories_est)
 
         % Z-Dimension
         subplot(4,1,3);
-        plot(squeeze(trajectories(i,3,:)), 'b');
+        plot(squeeze(trajectories(i,3,:)), 'b'); % Plot real trajectory in blue
         hold on;
-        plot(squeeze(trajectories_est(i,3,:)), 'r--');
+        plot(squeeze(trajectories_est(i,3,:)), 'r--'); % Plot estimated trajectory in red dashed line
         hold off;
         xlabel('Time');
         ylabel('Z');
@@ -46,9 +46,9 @@ function plotUAVTrajectories_function(numUAV, trajectories, trajectories_est)
 
         % Theta-Dimension
         subplot(4,1,4);
-        plot(squeeze(trajectories(i,4,:)), 'b');
+        plot(squeeze(trajectories(i,4,:)), 'b'); % Plot real trajectory in blue
         hold on;
-        plot(squeeze(trajectories_est(i,4,:)), 'r--');
+        plot(squeeze(trajectories_est(i,4,:)), 'r--'); % Plot estimated trajectory in red dashed line
         hold off;
         xlabel('Time');
         ylabel('Theta');
@@ -56,4 +56,25 @@ function plotUAVTrajectories_function(numUAV, trajectories, trajectories_est)
         legend('Real Trajectory', 'Estimated Trajectory');
 
     end
+
+    % Figure for trajectories in the x-y plane
+    figure;
+    hold on;
+    colors = lines(numUAV); % Generate a set of distinct colors
+    
+    plot(-1,-1, 'k', 'LineWidth', 0.5); % Plot real trajectory
+    plot(-1,-1, '--k', 'LineWidth', 0.5); % Plot estimated trajectory
+
+    for i = 1:numUAV
+        plot(squeeze(trajectories(i,1,:)), squeeze(trajectories(i,2,:)), 'Color', colors(i,:), 'LineWidth', 1.5); % Plot real trajectory
+        plot(squeeze(trajectories_est(i,1,:)), squeeze(trajectories_est(i,2,:)), '--', 'Color', colors(i,:), 'LineWidth', 1.5); % Plot estimated trajectory
+    end
+    hold off;
+    xlabel('X');
+    ylabel('Y');
+    title('Trajectories in the X-Y Plane');
+    legend('Real Trajectory', 'Estimated Trajectory');
+    xlim([0 Dimgrid(1)]); % Set x-axis limits based on grid dimensions
+    ylim([0 Dimgrid(2)]); % Set y-axis limits based on grid dimensions
+    grid on; % Enable grid
 end

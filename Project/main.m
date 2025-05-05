@@ -791,11 +791,11 @@ if DO_SIMULATION
 
         if UAV_FAIL
 
-            plotUAVTrajectories_function(numUAV+1, trajectories, trajectories_est);
+            plotUAVTrajectories_function(numUAV+1, trajectories, trajectories_est,dimgrid(1:2));
 
         else
 
-            plotUAVTrajectories_function(numUAV, trajectories, trajectories_est);
+            plotUAVTrajectories_function(numUAV, trajectories, trajectories_est,dimgrid(1:2));
 
         end
         
