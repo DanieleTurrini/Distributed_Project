@@ -5,7 +5,7 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;                                      % Time step
-T_sim = 20;                                     % Simulation time
+T_sim = 30;                                     % Simulation time
 scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
@@ -191,7 +191,7 @@ for i = 1:numUAV
 end
 
 % Decreasing factor of the fire
-deacreasingFire_factor = 20;                 % Decreasing factor of the fire extension
+deacreasingFire_factor = 4;                 % Decreasing factor of the fire extension
                                             % (we assume that the fire decrease every time the UAV drop the water)
 
                                             
@@ -840,7 +840,7 @@ if DO_SIMULATION
 
     end
 
-        if PLOT_EKF_ERROR
+    if PLOT_EKF_ERROR
 
         if UAV_FAIL
 
@@ -848,6 +848,8 @@ if DO_SIMULATION
                 
         else
 
+            plotEKFerror(numUAV, est_error);
+            
         end
 
     end

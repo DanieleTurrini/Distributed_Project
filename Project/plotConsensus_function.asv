@@ -1,5 +1,6 @@
 function plotConsensus_function (numFir, numfig, numUAV, posFirStoreReal, sigmaFirStoreReal, FirStore)
 
+
     figure(numfig);
 
     % X Estimate
@@ -39,7 +40,7 @@ function plotConsensus_function (numFir, numfig, numUAV, posFirStoreReal, sigmaF
     ylabel('Extension');
     title(sprintf('Estimated Extension of fire %d',numFir));
     hold on;
-    plot(sigmaFirStoreReal(1,:), '--', 'DisplayName', 'Real Extension');
+    plot(squeeze(sigmaFirStoreReal(1,1,:)), '--', 'DisplayName', 'Real Extension');
     legend;
     for k = 1:numUAV
         plot(squeeze(FirStore(k,3,:)), 'DisplayName', sprintf('UAV %d', k));

@@ -5,14 +5,15 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;                                      % Time step
-T_sim = 10;                                     % Simulation time
+T_sim = 30;                                     % Simulation time
 scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
 
 DO_SIMULATION = true;
-UAV_FAIL = true;
+UAV_FAIL = false;
 PLOT_ENVIROMENT = false;
+
 PLOT_DENSITY_FUNCTIONS = false;
 PLOT_TRAJECTORIES = true;
 PLOT_COVARIANCE_TRACE = true;
@@ -79,7 +80,6 @@ fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
                            state(4) + u(3) * deltat];
 
 %% UAV Fail paramters
-
 UAV_check_fail = false;             % Check if the UAV is failed
 fail_time = 6;                      % Time instant when one UAV fail 
 ind = 3;                            % UAV that fails
@@ -93,7 +93,7 @@ communication_prob = 0.05;          % Probability of NOT communication
 %% Measurement Parameters
 
 % Measurements frequencies
-meas_freq_GPS = 4; % 5 Hz
+meas_freq_GPS = 10; % 10 Hz
 meas_freq_ultr = 4; % 25 Hz
 meas_freq_gyr = 1; % 100 Hz
 
@@ -124,6 +124,7 @@ Q = diag(std_u.^2);                 % Covariance matrix of model and control unc
 
 % Initial state (x,y,z,theta)
 states_est = (states' + [std_gps * randn(2, numUAV); zeros(1, numUAV); std_gyro * randn(1, numUAV)])';
+
 
 % Observation matrix (H)
 H = [1, 0, 0,    0;
@@ -190,7 +191,7 @@ for i = 1:numUAV
 end
 
 % Decreasing factor of the fire
-deacreasingFire_factor = 8;                 % Decreasing factor of the fire extension
+deacreasingFire_factor = 4;                 % Decreasing factor of the fire extension
                                             % (we assume that the fire decrease every time the UAV drop the water)
 
                                             
@@ -208,7 +209,7 @@ wat_threshold = 30;                         % Distance that has to be reach from
 
 %%  Density Functions for the fires and the water
 
-[G_fire,G_water] = objective_density_functions(dimgrid, pos_fire1_mov, pos_fire2_mov, pos_water, sigma_fire1, sigma_fire2, sigma_water, 0, PLOT_DENSITY_FUNCTIONS);
+[G_fire,G_water] = objective_density_functions(dimgrid, pos_fire1_mov, pos_fire2_mov, pos_water, sigma_fire1, sigma_fire2, sigma_water, 0, initialUAV_pos, PLOT_DENSITY_FUNCTIONS);
 
 
 %% Consensus Parameters
@@ -305,7 +306,7 @@ if DO_SIMULATION
             if rand(1) < communication_prob && count > 1
 
                 check(k) = 0;       % NO communication
-                disp(sprintf('No communication for drone %d',k));
+                fprintf('No communication for drone %d\n',k);
 
             else
 
@@ -841,13 +842,13 @@ if DO_SIMULATION
 
         if PLOT_EKF_ERROR
 
-        if UAV_FAIL
-
-            plotEKFerror(numUAV+1, est_error);
-                
-        else
-
-        end
+            if UAV_FAIL
+    
+                plotEKFerror(numUAV+1, est_error);
+                    
+            else
+                plotEKFerror(numUAV+1, est_error);
+            end
 
     end
 

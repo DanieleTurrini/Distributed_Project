@@ -4,7 +4,7 @@ function plotCovarianceTrace(numUAV,P_trace)
 
         % Figura per la traccia della matrice di covarianza
         % figure(6 + numUAV);
-       
+        % 
         % subplot(numUAV,1,i);
         figure(6 + i);
         plot(squeeze(P_trace(i,:)));
