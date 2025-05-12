@@ -1,4 +1,4 @@
-function plotUAVTrajectories_function(numUAV, trajectories, trajectories_est, Dimgrid)
+function plotUAVTrajectories_function(numUAV, trajectories, trajectories_est, Dimgrid,measurements)
     % Function to generate trajectory and covariance plots for each UAV
     %
     % Input:
@@ -77,4 +77,25 @@ function plotUAVTrajectories_function(numUAV, trajectories, trajectories_est, Di
     xlim([0 Dimgrid(1)]); % Set x-axis limits based on grid dimensions
     ylim([0 Dimgrid(2)]); % Set y-axis limits based on grid dimensions
     grid on; % Enable grid
+
+    % Figure only one UAV trajectory estimated + GPS + real
+    figure;
+    % drone to plot
+    i = 1; % Change this to plot a different UAV
+    hold on;
+    plot(squeeze(measurements(i,1,:)), squeeze(measurements(i,2,:)), 'Color', colors(i+2,:), 'LineWidth', 0.5); % Plot GPS measurements
+    plot(squeeze(trajectories_est(i,1,:)), squeeze(trajectories_est(i,2,:)), '--', 'Color', colors(i+1,:), 'LineWidth', 1); % Plot estimated trajectory
+    plot(squeeze(trajectories(i,1,:)), squeeze(trajectories(i,2,:)), 'Color', colors(i,:), 'LineWidth', 1); % Plot real trajectory
+
+    hold off;
+    xlabel('X');
+    ylabel('Y');
+    title(sprintf('UAV %d Trajectory with GPS Measurements', i));
+    legend('GPS Measurements', 'Estimated Trajectory', 'Real Trajectory');
+    xlim([0 Dimgrid(1)]); % Set x-axis limits based on grid dimensions
+    ylim([0 Dimgrid(2)]); % Set y-axis limits based on grid dimensions
+    grid on; % Enable grid
+
+
+
 end
