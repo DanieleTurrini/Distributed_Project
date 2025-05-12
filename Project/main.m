@@ -11,8 +11,14 @@ tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
 
 DO_SIMULATION = true;
-UAV_FAIL = true;
+UAV_FAIL = false;
 PLOT_ENVIROMENT = false;
+<<<<<<< HEAD
+PLOT_DENSITY_FUNCTIONS = true;
+PLOT_TRAJECTORIES = false;
+PLOT_COVARIANCE_TRACE = false;
+PLOT_CONSENSUS = false;
+=======
 PLOT_DENSITY_FUNCTIONS = false;
 PLOT_TRAJECTORIES = true;
 PLOT_COVARIANCE_TRACE = true;
@@ -79,7 +85,6 @@ fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
                            state(4) + u(3) * deltat];
 
 %% UAV Fail paramters
-
 UAV_check_fail = false;             % Check if the UAV is failed
 fail_time = 6;                      % Time instant when one UAV fail 
 ind = 3;                            % UAV that fails
@@ -191,7 +196,7 @@ for i = 1:numUAV
 end
 
 % Decreasing factor of the fire
-deacreasingFire_factor = 8;                 % Decreasing factor of the fire extension
+deacreasingFire_factor = 20;                 % Decreasing factor of the fire extension
                                             % (we assume that the fire decrease every time the UAV drop the water)
 
                                             
@@ -209,7 +214,7 @@ wat_threshold = 30;                         % Distance that has to be reach from
 
 %%  Density Functions for the fires and the water
 
-[G_fire,G_water] = objective_density_functions(dimgrid, pos_fire1_mov, pos_fire2_mov, pos_water, sigma_fire1, sigma_fire2, sigma_water, 0, PLOT_DENSITY_FUNCTIONS);
+[G_fire,G_water] = objective_density_functions(dimgrid, pos_fire1_mov, pos_fire2_mov, pos_water, sigma_fire1, sigma_fire2, sigma_water, 0, initialUAV_pos, PLOT_DENSITY_FUNCTIONS);
 
 
 %% Consensus Parameters
