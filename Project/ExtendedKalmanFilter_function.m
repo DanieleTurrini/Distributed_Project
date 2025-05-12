@@ -12,11 +12,13 @@ function [x, P] = ExtendedKalmanFilter_function(states_est, measure, control, A,
     P = A_k * P * A_k' + G_k * Q * G_k';   % Covariance prediction
     
     %% Update step
+    
     % GPS
     if mod(count, meas_freq_GPS) == 0 && rand(1) <= probGPS
 
         [x,P] = update_step(x, measure(1:2), H(1:2,:), P, R(1:2,1:2));
     end
+
     % Ultrasonic
     if mod(count, meas_freq_ultr) == 0 && rand(1) <= probUltr
 

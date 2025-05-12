@@ -5,7 +5,7 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;                                      % Time step
-T_sim = 30;                                     % Simulation time
+T_sim = 10;                                     % Simulation time
 scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
@@ -93,7 +93,7 @@ communication_prob = 0.05;          % Probability of NOT communication
 %% Measurement Parameters
 
 % Measurements frequencies
-meas_freq_GPS = 10; % 10 Hz
+meas_freq_GPS = 4; % 5 Hz
 meas_freq_ultr = 4; % 25 Hz
 meas_freq_gyr = 1; % 100 Hz
 
@@ -124,7 +124,6 @@ Q = diag(std_u.^2);                 % Covariance matrix of model and control unc
 
 % Initial state (x,y,z,theta)
 states_est = (states' + [std_gps * randn(2, numUAV); zeros(1, numUAV); std_gyro * randn(1, numUAV)])';
-
 
 % Observation matrix (H)
 H = [1, 0, 0,    0;

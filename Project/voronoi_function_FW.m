@@ -20,7 +20,6 @@ function [areas, weigth_centroids, vel] = voronoi_function_FW( numUAV, dimgrid, 
     % Calcola le aree e i centroidi pesati per ogni punto
     for i = 1:numUAV
 
-
         G_fire = fires_dens_function(dimgrid, pos_est_fire1(i,:), pos_est_fire2(i,:), sigma_est_fire1(i,1), sigma_est_fire2(i,1)) ;
         
         % Estrai i punti della regione assegnata al drone i
