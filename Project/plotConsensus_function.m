@@ -46,18 +46,18 @@ function plotConsensus_function (numFir, numfig, numUAV, posFirStoreReal, sigmaF
     end
     hold off;
 
-    % only one estimated zoom 
-    figure;
-    % Plot of the estimated X coordinate
-    xlabel('Time');
-    ylabel('X Coordinate');
-    title(sprintf('Estimated X Coordinate of fire %d',numFir));
-    hold on;
-    plot(squeeze(posFirStoreReal(1,1,:)), '--', 'DisplayName', 'Real X');
-    legend;
-    for k = 1:numUAV
-        plot(squeeze(FirStore(k,1,:)), 'DisplayName', sprintf('UAV %d', k));
-    end
-    hold off;
+    % % only one estimated zoom 
+    % figure;
+    % % Plot of the estimated X coordinate
+    % xlabel('Time');
+    % ylabel('X Coordinate');
+    % title(sprintf('Estimated X Coordinate of fire %d',numFir));
+    % hold on;
+    % plot(squeeze(posFir1StoreReal(1,1,:)), '--', 'DisplayName', 'Real X');
+    % legend;
+    % for k = 1:numUAV
+    %     plot(squeeze(Fir1Store(k,1,:)), 'DisplayName', sprintf('UAV %d', k));
+    % end
+    % hold off;
    
 end

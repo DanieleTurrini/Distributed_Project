@@ -9,7 +9,6 @@ T_sim = 10;                                     % Simulation time
 scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
-
 DO_SIMULATION = true;
 UAV_FAIL = false;
 PLOT_ENVIROMENT = false;
@@ -34,7 +33,7 @@ vel_lin_min = 50;                   % Minimum linear velocity [m/s]
 vel_lin_z_max = 100;                % Maximum linear velocity along z [m/s]
 vel_ang_max = 15;                   % Maximum angular velocity [rad/s]
 dim_UAV = 4;                        % Dimension of the UAV
-numUAV = 5;                         % Number of UAV
+numUAV = 6;                         % Number of UAV
 Kp_z = 100;                         % Proportional gain for the linear velocity along z
 Kp = 50;                            % Proportional gain for the linear velocity  
 Ka = 10;                            % Proportional gain for the angular velocity
@@ -288,6 +287,8 @@ vy_Data = cell(1, tot_iter); % Celle per memorizzare i dati di vy
 % Creazione della griglia di punti
 [x_m, y_m] = meshgrid(1:dimgrid(1), 1:dimgrid(2));
 
+% Drops time distance
+drop_times_diff = zeros(1,1);
 % Measurementof the state
 measurements = zeros(numUAV, 4, tot_iter); % Initialize the measurements matrix 
 
@@ -477,6 +478,9 @@ if DO_SIMULATION
                 objective(i) = 2; % Change objective to 2 (heading to refill water)
                 meas_fire1(i) = 0;
 
+                dt_drop = count - drop_times_diff(end);
+                drop_times_diff = [drop_times_diff, dt_drop];
+
             elseif dist_inc2(i) <= inc_threshold2(i) && objective(i) == 1
                 
                 sigma_fire2 = sigma_fire2 - deacreasingFire_factor;     % Reduce the extension of the first fire
@@ -489,6 +493,9 @@ if DO_SIMULATION
 
                 objective(i) = 2; % Change objective to 2 (heading to refill water)
                 meas_fire1(i) = 0;
+
+                dt_drop = count - drop_times_diff(end);
+                drop_times_diff = [drop_times_diff, dt_drop];
             end
 
             % If the drone is close to the water source and its objective is 2 (heading to refill)
@@ -800,6 +807,9 @@ if DO_SIMULATION
         fprintf('Iteration n: %d / %d\n', count, tot_iter);
         
     end
+
+    disp(sprintf('Mean drop time distance: %f', mean(drop_times(2:end))));
+    disp(sprintf('Number of drops: %d', size(drop_times) - 1));
 
     if PLOT_TRAJECTORIES
 
