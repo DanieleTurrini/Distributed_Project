@@ -20,7 +20,6 @@ function [areas, weigth_centroids, vel] = voronoi_function_FW( numUAV, dimgrid, 
     for i = 1:numUAV
 
         G_fire = fires_dens_function(dimgrid, pos_est_fire1(i,:), pos_est_fire2(i,:), sigma_est_fire1(i,1), sigma_est_fire2(i,1)) ;
->>>>>>> fe41509b02977776ed91b37a819cfe3f6e744487
         
         % Extract the points of the region assigned to UAV i
         region_points = voronoi_grid(minimum_indices == i, :); % Points of the region

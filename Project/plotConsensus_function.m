@@ -1,17 +1,17 @@
 function plotConsensus_function (numFir, numfig, numUAV, posFir1StoreReal, sigmaFir1StoreReal, Fir1Store)
-    % Funzione per generare i grafici delle coordinate stimate e dell'estensione del fuoco 1
+    % Function to generate plots of the estimated coordinates and the extension of fire 1
     %
     % Input:
-    %   numUAV - Numero di UAV
-    %   posFir1StoreReal - Posizioni reali del fuoco 1 (1 x 2 x time)
-    %   posFir1StoreX - Posizioni stimate X del fuoco 1 (numUAV x 1 x time)
-    %   posFir1StoreY - Posizioni stimate Y del fuoco 1 (numUAV x 1 x time)
-    %   sigmaFir1StoreReal - Estensione reale del fuoco 1 (1 x time)
-    %   sigmaFir1Stor - Estensioni stimate del fuoco 1 (numUAV x 1 x time)
+    %   numUAV - Number of UAVs
+    %   posFir1StoreReal - Real positions of fire 1 (1 x 2 x time)
+    %   posFir1StoreX - Estimated X positions of fire 1 (numUAV x 1 x time)
+    %   posFir1StoreY - Estimated Y positions of fire 1 (numUAV x 1 x time)
+    %   sigmaFir1StoreReal - Real extension of fire 1 (1 x time)
+    %   sigmaFir1Stor - Estimated extensions of fire 1 (numUAV x 1 x time)
 
     figure(numfig);
 
-    % Grafico della coordinata X stimata
+    % Plot of the estimated X coordinate
     subplot(3,1,1);
     xlabel('Time');
     ylabel('X Coordinate');
@@ -25,7 +25,7 @@ function plotConsensus_function (numFir, numfig, numUAV, posFir1StoreReal, sigma
     hold off;
     
 
-    % Grafico della coordinata Y stimata
+    % Plot of the estimated Y coordinate
     subplot(3,1,2);
     xlabel('Time');
     ylabel('Y Coordinate');
@@ -39,7 +39,7 @@ function plotConsensus_function (numFir, numfig, numUAV, posFir1StoreReal, sigma
     hold off;
     
 
-    % Grafico dell'estensione stimata
+    % Plot of the estimated extension
     subplot(3,1,3);
     xlabel('Time');
     ylabel('Extension');
