@@ -13,12 +13,7 @@ tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 DO_SIMULATION = true;
 UAV_FAIL = false;
 PLOT_ENVIROMENT = false;
-<<<<<<< HEAD
-PLOT_DENSITY_FUNCTIONS = true;
-PLOT_TRAJECTORIES = false;
-PLOT_COVARIANCE_TRACE = false;
-PLOT_CONSENSUS = false;
-=======
+
 PLOT_DENSITY_FUNCTIONS = false;
 PLOT_TRAJECTORIES = true;
 PLOT_COVARIANCE_TRACE = true;
@@ -311,7 +306,7 @@ if DO_SIMULATION
             if rand(1) < communication_prob && count > 1
 
                 check(k) = 0;       % NO communication
-                disp(sprintf('No communication for drone %d',k));
+                fprintf('No communication for drone %d\n',k);
 
             else
 
