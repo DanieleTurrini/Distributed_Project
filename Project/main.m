@@ -11,16 +11,16 @@ tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
 DO_SIMULATION = true;
 UAV_FAIL = false;
-PLOT_ENVIRONMENT = true;
 
-PLOT_DENSITY_FUNCTIONS = false;
+PLOT_ENVIRONMENT = false;
+PLOT_DENSITY_FUNCTIONS = true;
 PLOT_TRAJECTORIES = true;
-PLOT_COVARIANCE_TRACE = false;
+PLOT_COVARIANCE_TRACE = true;
 PLOT_CONSENSUS = true;
-PLOT_EKF_ERROR = false;
+PLOT_EKF_ERROR = true;
 
 PLOT_ITERATIVE_SIMULATION = false;
-ANIMATION = true;
+ANIMATION = false;
 
 if ANIMATION == true
     DO_SIMULATION = true;
@@ -33,7 +33,7 @@ vel_lin_min = 50;                   % Minimum linear velocity [m/s]
 vel_lin_z_max = 100;                % Maximum linear velocity along z [m/s]
 vel_ang_max = 15;                   % Maximum angular velocity [rad/s]
 dim_UAV = 4;                        % Dimension of the UAV
-numUAV = 6;                         % Number of UAV
+numUAV = 5;                         % Number of UAV
 Kp_z = 100;                         % Proportional gain for the linear velocity along z
 Kp = 50;                            % Proportional gain for the linear velocity  
 Ka = 10;                            % Proportional gain for the angular velocity
@@ -41,7 +41,7 @@ height_flight = 30;                 % Height of flight from the ground
 
 % Take Off
 takeOff = true;
-freq_takeOff = 50;                  % Time distance between each takeoff 
+freq_takeOff = 60;                  % Time distance between each takeoff 
 n = 1;
 
 % Refill
@@ -164,7 +164,7 @@ sigma_fire1 = 50;                           % Standard deviation of the first fi
 % Simulated moving fire 2
 pos_fire2_mov = @(t) [x_fire2 - 2.5 * (t - 1) , y_fire2 + 1 * (t - 1)]; % t start from 1
 
-sigma_fire2 = 25; a                          % Standard deviation of the second fire
+sigma_fire2 = 25;                           % Standard deviation of the second fire
                                             % (corresponding to the extention of the fire)
 
 inc_threshold1 = sigma_fire1 * drop_dist;   % Distance that has to be reach from the fire 1 
@@ -190,7 +190,7 @@ for i = 1:numUAV
 end
 
 % Decreasing factor of the fire
-deacreasingFire_factor = 2;                 % Decreasing factor of the fire extension
+deacreasingFire_factor = 1;                 % Decreasing factor of the fire extension
                                             % (we assume that the fire decrease every time the UAV drop the water)
 
                                             
@@ -289,6 +289,8 @@ vy_Data = cell(1, tot_iter); % Celle per memorizzare i dati di vy
 
 % Drops time distance
 drop_times_diff = zeros(1,1);
+drop_times = zeros(1,1);
+
 % Measurementof the state
 measurements = zeros(numUAV, 4, tot_iter); % Initialize the measurements matrix 
 
@@ -482,9 +484,11 @@ if DO_SIMULATION
                 objective(i) = 2; % Change objective to 2 (heading to refill water)
                 meas_fire1(i) = 0;
 
-                dt_drop = count - drop_times_diff(end);
+                drop_times = [drop_times,count];
+
+                dt_drop = drop_times(end) - drop_times(end-1);
                 drop_times_diff = [drop_times_diff, dt_drop];
-                drops_f1 = drops_f1 +1;
+                drops_f1 = drops_f1 + 1;
 
             elseif dist_inc2(i) <= inc_threshold2(i) && objective(i) == 1
                 
@@ -499,7 +503,9 @@ if DO_SIMULATION
                 objective(i) = 2; % Change objective to 2 (heading to refill water)
                 meas_fire1(i) = 0;
 
-                dt_drop = count - drop_times_diff(end);
+                drop_times = [drop_times,count];
+
+                dt_drop = drop_times(end) - drop_times(end-1);
                 drop_times_diff = [drop_times_diff, dt_drop];
                 drops_f2 = drops_f2 + 1;
 
@@ -816,8 +822,8 @@ if DO_SIMULATION
 
     % SIMULATION EVALUATION 
     
-    disp(sprintf('Mean drop time distance: %f', mean(drop_times_diff(2:end))));
-    disp(sprintf('Number of drops: %d', size(drop_times_diff) - 1));
+    disp(sprintf('Mean drop time distance: %f ', mean(drop_times_diff(3:end))));
+    disp(sprintf('Total Number of drops: %d', size(drop_times_diff) - 1));
 
     disp(sprintf('Number of drops on the Fire 1: %d', drops_f1));
     disp(sprintf('Number of drops on the Fire 2: %d', drops_f2));
@@ -922,7 +928,7 @@ if ANIMATION
 
         end
 
-        plot(bx,x_water,y_water,'o','Color', 'b', 'MarkerSize', sigma_water);
+        plot(bx,x_water,y_water,'o','Color', 'b', 'MarkerSize', 90);
 
         for i = 1:numUAV
 
