@@ -5,7 +5,7 @@ function plotSimulation_function(states, states_est, centroids_est, numUAV, dimg
     subplot(1,2,1);
     set(gcf, 'Position', [0, 100, 1400, 600]); % Imposta la dimensione della figura per adattarsi meglio allo schermo
     theta = linspace(0, 2 * pi, 100); % Parametro angolare precomputato
-    r = sigma_water / 2;
+    r =  45;
     x_circle = r * cos(theta) + x_water;
     y_circle = r * sin(theta) + y_water;
     z_circle = ones(size(theta)) * 5;

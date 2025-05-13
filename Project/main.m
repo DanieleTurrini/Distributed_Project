@@ -5,13 +5,13 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;                                      % Time step
-T_sim = 10;                                     % Simulation time
+T_sim = 30;                                     % Simulation time
 scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
 DO_SIMULATION = true;
 UAV_FAIL = false;
-PLOT_ENVIROMENT = false;
+PLOT_ENVIRONMENT = true;
 
 PLOT_DENSITY_FUNCTIONS = false;
 PLOT_TRAJECTORIES = true;
@@ -33,7 +33,7 @@ vel_lin_min = 50;                   % Minimum linear velocity [m/s]
 vel_lin_z_max = 100;                % Maximum linear velocity along z [m/s]
 vel_ang_max = 15;                   % Maximum angular velocity [rad/s]
 dim_UAV = 4;                        % Dimension of the UAV
-numUAV = 3;                         % Number of UAV
+numUAV = 6;                         % Number of UAV
 Kp_z = 100;                         % Proportional gain for the linear velocity along z
 Kp = 50;                            % Proportional gain for the linear velocity  
 Ka = 10;                            % Proportional gain for the angular velocity
@@ -56,7 +56,7 @@ theta = ones(numUAV,1) * (- pi/2);
 
 for i = 1:numUAV
     y(i) = y(i) + 30 * i;
-    z(i) = enviroment_surface(x(i),y(i),scenario) + 0.2;
+    z(i) = environment_surface(x(i),y(i),scenario) + 0.2;
 end
 
 initialUAV_pos = [x, y, z, theta];
@@ -139,7 +139,7 @@ P = eye(4) * 5;            % We consider some starting uncertanty
 
 dimgrid = [500 500 500];                    % Define the dimensions of the Map
 
-[Xf, Yf, Zf] = plot_enviroment_surface(PLOT_ENVIROMENT);
+[Xf, Yf, Zf] = plot_environment_surface(PLOT_ENVIRONMENT);
 
 %% Fires Parameters
 
@@ -164,7 +164,7 @@ sigma_fire1 = 50;                           % Standard deviation of the first fi
 % Simulated moving fire 2
 pos_fire2_mov = @(t) [x_fire2 - 2.5 * (t - 1) , y_fire2 + 1 * (t - 1)]; % t start from 1
 
-sigma_fire2 = 20;                           % Standard deviation of the second fire
+sigma_fire2 = 25;                           % Standard deviation of the second fire
                                             % (corresponding to the extention of the fire)
 
 inc_threshold1 = sigma_fire1 * drop_dist;   % Distance that has to be reach from the fire 1 
@@ -190,7 +190,7 @@ for i = 1:numUAV
 end
 
 % Decreasing factor of the fire
-deacreasingFire_factor = 4;                 % Decreasing factor of the fire extension
+deacreasingFire_factor = 2;                 % Decreasing factor of the fire extension
                                             % (we assume that the fire decrease every time the UAV drop the water)
 
                                             
@@ -735,7 +735,7 @@ if DO_SIMULATION
                     trajectories_est(k,:,count) = trajectories_est(k,:,count-1);
                     centroids_est_stor(k,:,count) = centroids_est_stor(k,:,count-1);
                     
-                    trajectories(k,3,count) = enviroment_surface(trajectories(k,1,count), ...
+                    trajectories(k,3,count) = environment_surface(trajectories(k,1,count), ...
                                                                  trajectories(k,2,count), ...
                                                                  scenario);
                     trajectories_est(k,3,count) = 0;
@@ -1065,7 +1065,7 @@ if ANIMATION
             theta = trajectories(i,4,t); 
     
             % surface height under the UAV    
-            z0  = enviroment_surface(x, y, 1);
+            z0  = environment_surface(x, y, 1);
     
             T = makehgtform('translate',[x,y,z], ...
                             'zrotate', theta);
@@ -1083,7 +1083,7 @@ if ANIMATION
             set(hFireReal1, ...
                 'XData', posFir1StoreReal(1,1,t), ...
                 'YData', posFir1StoreReal(1,2,t), ...
-                'ZData', enviroment_surface(...
+                'ZData', environment_surface(...
                         posFir1StoreReal(1,1,t), ...
                         posFir1StoreReal(1,2,t), 1), ...
                 'MarkerSize', sigmaFir1StoreReal(1,t));
@@ -1096,7 +1096,7 @@ if ANIMATION
             set(hFireEst1, ...
                 'XData', Fir1Store(i,1,t), ...
                 'YData', Fir1Store(i,2,t), ...
-                'ZData', enviroment_surface(...
+                'ZData', environment_surface(...
                         Fir1Store(i,1,t), ...
                         Fir1Store(i,2,t), 1), ...
                         'MarkerSize', Fir1Store(i,3,t),...
@@ -1109,7 +1109,7 @@ if ANIMATION
             set(hFireReal2, ...
                 'XData', posFir2StoreReal(1,1,t), ...
                 'YData', posFir2StoreReal(1,2,t), ...
-                'ZData', enviroment_surface(...
+                'ZData', environment_surface(...
                         posFir2StoreReal(1,1,t), ...
                         posFir2StoreReal(1,2,t), 1), ...
                 'MarkerSize', sigmaFir2StoreReal(1,t));
@@ -1122,7 +1122,7 @@ if ANIMATION
             set(hFireEst2, ...
                 'XData', Fir2Store(i,1,t), ...
                 'YData', Fir2Store(i,2,t), ...
-                'ZData', enviroment_surface(...
+                'ZData', environment_surface(...
                         Fir2Store(i,1,t), ...
                         Fir2Store(i,2,t), 1), ...
                 'MarkerSize', Fir2Store(i,3,t),...
