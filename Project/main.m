@@ -20,7 +20,7 @@ PLOT_CONSENSUS = true;
 PLOT_EKF_ERROR = false;
 
 PLOT_ITERATIVE_SIMULATION = false;
-ANIMATION = false;
+ANIMATION = true;
 
 if ANIMATION == true
     DO_SIMULATION = true;
@@ -33,7 +33,7 @@ vel_lin_min = 50;                   % Minimum linear velocity [m/s]
 vel_lin_z_max = 100;                % Maximum linear velocity along z [m/s]
 vel_ang_max = 15;                   % Maximum angular velocity [rad/s]
 dim_UAV = 4;                        % Dimension of the UAV
-numUAV = 6;                         % Number of UAV
+numUAV = 3;                         % Number of UAV
 Kp_z = 100;                         % Proportional gain for the linear velocity along z
 Kp = 50;                            % Proportional gain for the linear velocity  
 Ka = 10;                            % Proportional gain for the angular velocity
@@ -290,6 +290,10 @@ vy_Data = cell(1, tot_iter); % Celle per memorizzare i dati di vy
 % Drops time distance
 drop_times_diff = zeros(1,1);
 
+% Number of drops 
+drops_f1 = 0;
+drops_f2 = 0;
+
 
 %% Simulation
 if DO_SIMULATION
@@ -478,6 +482,7 @@ if DO_SIMULATION
 
                 dt_drop = count - drop_times_diff(end);
                 drop_times_diff = [drop_times_diff, dt_drop];
+                drops_f1 = drops_f1 +1;
 
             elseif dist_inc2(i) <= inc_threshold2(i) && objective(i) == 1
                 
@@ -494,6 +499,8 @@ if DO_SIMULATION
 
                 dt_drop = count - drop_times_diff(end);
                 drop_times_diff = [drop_times_diff, dt_drop];
+                drops_f2 = drops_f2 + 1;
+
             end
 
             % If the drone is close to the water source and its objective is 2 (heading to refill)
@@ -571,7 +578,6 @@ if DO_SIMULATION
 
                 % If the drone is close to the initial position, set the vertical speed
                 control_est(i,2) = sign( 0.2 - states(i,3)) * min(vel_lin_z_max, Kp_z/100 * abs( 0.5 - states(i,3))); % flight_surface(initialUAV_pos(i,1),initialUAV_pos(i,1),0,1) +
-
 
                 if dist_to_initial < 5
 
@@ -804,8 +810,13 @@ if DO_SIMULATION
         
     end
 
-    disp(sprintf('Mean drop time distance: %f', mean(drop_times(2:end))));
-    disp(sprintf('Number of drops: %d', size(drop_times) - 1));
+    % SIMULATION EVALUATION 
+    
+    disp(sprintf('Mean drop time distance: %f', mean(drop_times_diff(2:end))));
+    disp(sprintf('Number of drops: %d', size(drop_times_diff) - 1));
+
+    disp(sprintf('Number of drops on the Fire 1: %d', drops_f1));
+    disp(sprintf('Number of drops on the Fire 2: %d', drops_f2));
 
     if PLOT_TRAJECTORIES
 
