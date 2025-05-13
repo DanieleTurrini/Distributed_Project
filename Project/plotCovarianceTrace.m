@@ -1,12 +1,10 @@
 function plotCovarianceTrace(numUAV,P_trace)
 
     for i = 1:numUAV
+        
+        figure(6 + numUAV);
 
-        % Figura per la traccia della matrice di covarianza
-        % figure(6 + numUAV);
-        % 
-        % subplot(numUAV,1,i);
-        figure(6 + i);
+        subplot(numUAV,1,i);
         plot(squeeze(P_trace(i,:)));
         xlabel('Time');
         ylabel('Covariance');
