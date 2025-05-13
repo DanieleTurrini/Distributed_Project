@@ -5,7 +5,7 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;                                      % Time step
-T_sim = 30;                                     % Simulation time
+T_sim = 10;                                     % Simulation time
 scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
@@ -14,7 +14,7 @@ UAV_FAIL = false;
 PLOT_ENVIROMENT = false;
 
 PLOT_DENSITY_FUNCTIONS = false;
-PLOT_TRAJECTORIES = false;
+PLOT_TRAJECTORIES = true;
 PLOT_COVARIANCE_TRACE = false;
 PLOT_CONSENSUS = true;
 PLOT_EKF_ERROR = false;
@@ -289,6 +289,8 @@ vy_Data = cell(1, tot_iter); % Celle per memorizzare i dati di vy
 
 % Drops time distance
 drop_times_diff = zeros(1,1);
+% Measurementof the state
+measurements = zeros(numUAV, 4, tot_iter); % Initialize the measurements matrix 
 
 % Number of drops 
 drops_f1 = 0;
@@ -649,12 +651,14 @@ if DO_SIMULATION
            
         end
 
+        %% Measure
         
-        %% Extended Kalman Filter
-
         measure = (H * states' + [std_gps * randn(2, numUAV); ...
                                   std_ultrasonic * randn(1, numUAV); ...
                                   std_gyro * randn(1, numUAV)])';
+        measurements(:, :, count) = measure; % Save the measurements
+
+        %% Extended Kalman Filter
 
         for k = 1:numUAV
 
@@ -822,11 +826,11 @@ if DO_SIMULATION
 
         if UAV_FAIL
 
-            plotUAVTrajectories_function(numUAV+1, trajectories, trajectories_est,dimgrid(1:2));
+            plotUAVTrajectories_function(numUAV+1, trajectories, trajectories_est,dimgrid(1:2),measurements);
 
         else
 
-            plotUAVTrajectories_function(numUAV, trajectories, trajectories_est,dimgrid(1:2));
+            plotUAVTrajectories_function(numUAV, trajectories, trajectories_est,dimgrid(1:2),measurements);
 
         end
         
