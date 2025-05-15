@@ -83,7 +83,7 @@ fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
 
 UAV_check_fail = false;             % Check if the UAV is failed
 fail_time = 9;                      % Time instant when one UAV fail 
-ind = 5;                            % UAV that fails
+ind = 1;                            % UAV that fails
 ind_est = 0;                        % Initialization of ind_est
 check = ones(numUAV, 1);            % Variable that they periodically exchange 
 check_treshold = 10;                % If the check of that UAV is 1 for 10 times,
@@ -193,7 +193,7 @@ for i = 1:numUAV
 end
 
 % Decreasing factor of the fire
-deacreasingFire_factor = 10;                 % Decreasing factor of the fire extension
+deacreasingFire_factor = 4;                 % Decreasing factor of the fire extension
                                             % (we assume that the fire decrease every time the UAV drop the water)
                         
 %% Water Parameters
