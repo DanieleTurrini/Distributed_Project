@@ -761,8 +761,24 @@ if DO_SIMULATION
 
                 end
 
-            else
+                % if k == numUAV && k ~= ind
+                % 
+                %     measurements(k+1, :, count) = measure(k,:); 
+                %     est_error(k+1,:,count) = abs(states_est(k,:) - states(k,:));
+                %     trajectories(k+1,:,count) = states(k,:);
+                %     trajectories_est(k+1,:,count) = states_est(k,:);
+                %     centroids_est_stor(k+1,:,count) = centroids_est(k,:);
+                % 
+                %     Fir1Store(k+1,1,count) = pos_est_fire1(k,1);
+                %     Fir1Store(k+1,2,count) = pos_est_fire1(k,2);
+                %     Fir1Store(k+1,3,count) = sigma_est_fire1(k,1);
+                % 
+                %     Fir2Store(k+1,1,count) = pos_est_fire2(k,1);
+                %     Fir2Store(k+1,2,count) = pos_est_fire2(k,2);
+                %     Fir2Store(k+1,3,count) = sigma_est_fire2(k,1);
+                % end
 
+            else
                 measurements(k, :, count) = measure(k,:); 
                 est_error(k,:,count) = abs(states_est(k,:) - states(k,:));
                 trajectories(k,:,count) = states(k,:);
@@ -776,7 +792,6 @@ if DO_SIMULATION
                 Fir2Store(k,1,count) = pos_est_fire2(k,1);
                 Fir2Store(k,2,count) = pos_est_fire2(k,2);
                 Fir2Store(k,3,count) = sigma_est_fire2(k,1);
-
             end
 
         end
@@ -942,6 +957,7 @@ if ANIMATION
     end   
 
 
+
     %% Plot 3D Simulation
     figure(60);
     set(gcf, 'Position', figure_size);
@@ -949,7 +965,7 @@ if ANIMATION
     axis(ax,[0 dimgrid(1) 0 dimgrid(2) 0 dimgrid(3)]);
     hold(ax,'on');
     
-    % Loading texture 
+    % Carica la texture
     texture = imread('Mountain.jpg');  % deve essere RGB
     texture_resized = imresize(texture, [size(Xf,1), size(Xf,2)]);
     texture_resized = double(texture_resized) / 255;  % Normalizza tra 0 e 1
