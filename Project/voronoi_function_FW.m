@@ -35,8 +35,7 @@ function [areas, weigth_centroids, vel] = voronoi_function_FW( numUAV, dimgrid, 
             weights = G_water(sub2ind(size(G_water), region_points(:,2), region_points(:,1)));
         elseif objective(i) == 3
             % Compute the mass of the region
-            %weights = exp(-vecnorm(region_points - initialUAV_pos(i, 1:2), 2, 2));
-            sigma = 20; 
+            sigma = 10; 
             weights = exp( -sum((region_points - initialUAV_pos(i,1:2)).^2, 2) / (2 * sigma^2) );
 
 

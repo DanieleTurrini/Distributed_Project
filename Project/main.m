@@ -10,17 +10,17 @@ scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
 DO_SIMULATION = true;
-UAV_FAIL = false;
+UAV_FAIL = true;
 
 PLOT_ENVIRONMENT = false;
-PLOT_DENSITY_FUNCTIONS = true;
+PLOT_DENSITY_FUNCTIONS = false;
 PLOT_TRAJECTORIES = true;
 PLOT_COVARIANCE_TRACE = true;
 PLOT_CONSENSUS = true;
 PLOT_EKF_ERROR = true;
 
 PLOT_ITERATIVE_SIMULATION = false;
-ANIMATION = false;
+ANIMATION = true;
 
 if ANIMATION == true
     DO_SIMULATION = true;
@@ -31,9 +31,10 @@ end
 vel_lin_max = 100;                  % Maximum linear velocity [m/s]
 vel_lin_min = 50;                   % Minimum linear velocity [m/s]
 vel_lin_z_max = 100;                % Maximum linear velocity along z [m/s]
-vel_ang_max = 15;                   % Maximum angular velocity [rad/s]
+vel_ang_max = 10;                   % Maximum angular velocity [rad/s]
 dim_UAV = 4;                        % Dimension of the UAV
-numUAV = 10;                         % Number of UAV
+numUAV = 7;                         % Number of UAV
+totUAV = numUAV;                    % Initial Number of UAV
 Kp_z = 100;                         % Proportional gain for the linear velocity along z
 Kp = 50;                            % Proportional gain for the linear velocity  
 Ka = 10;                            % Proportional gain for the angular velocity
@@ -79,9 +80,11 @@ fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
                            state(4) + u(3) * deltat];
 
 %% UAV Fail paramters
+
 UAV_check_fail = false;             % Check if the UAV is failed
-fail_time = 6;                      % Time instant when one UAV fail 
-ind = 3;                            % UAV that fails
+fail_time = 9;                      % Time instant when one UAV fail 
+ind = 5;                            % UAV that fails
+ind_est = 0;                        % Initialization of ind_est
 check = ones(numUAV, 1);            % Variable that they periodically exchange 
 check_treshold = 10;                % If the check of that UAV is 1 for 10 times,
                                     % it is considered failed 
@@ -190,10 +193,9 @@ for i = 1:numUAV
 end
 
 % Decreasing factor of the fire
-deacreasingFire_factor = 1;                 % Decreasing factor of the fire extension
+deacreasingFire_factor = 10;                 % Decreasing factor of the fire extension
                                             % (we assume that the fire decrease every time the UAV drop the water)
-
-                                            
+                        
 %% Water Parameters
 
 % Water Positions
@@ -204,7 +206,6 @@ pos_water = [x_water, y_water];
 
 sigma_water = 40;
 wat_threshold = 30;                         % Distance that has to be reach from the water source to refill
-
 
 %%  Density Functions for the fires and the water
 
@@ -312,11 +313,11 @@ if DO_SIMULATION
 
         %% Check commumication
         % See if communication is present
-        for k = 1:numUAV
+        for k = 1:totUAV
             if rand(1) < communication_prob && count > 1
 
                 check(k) = 0;       % NO communication
-                fprintf('No communication for drone %d\n',k);
+                fprintf('No communication for UAV %d\n',k);
 
             else
 
@@ -343,34 +344,26 @@ if DO_SIMULATION
                 check_count(k) = check_count(k) + 1;
 
                 % Set the previous position and fire estimation
-                if UAV_check_fail == false 
+                if UAV_check_fail == false && k ~= ind_est
 
                     states_est(k,:) = trajectories_est(k,:,count-1);
                     pos_est_fire1(k,:) = Fir1Store(k,1:2,count-1);
                     pos_est_fire2(k,:) = Fir2Store(k,1:2,count-1);
                     sigma_est_fire1(k,1) = Fir1Store(k,3,count-1);
                     sigma_est_fire2(k,1) = Fir2Store(k,3,count-1);
-                    
+
                 else
+                    % 
+                    % states_est(k,:) = trajectories_est(k,:,count-1);
+                    % pos_est_fire1(k,:) = Fir1Store(k,1:2,count-1);
+                    % pos_est_fire2(k,:) = Fir2Store(k,1:2,count-1);
+                    % sigma_est_fire1(k,1) = Fir1Store(k,3,count-1);
+                    % sigma_est_fire2(k,1) = Fir2Store(k,3,count-1);
+                
 
-                    if k < ind_est 
-
-                        states_est(k,:) = trajectories_est(k,:,count-1);
-                        pos_est_fire1(k,:) = Fir1Store(k,1:2,count-1);
-                        pos_est_fire2(k,:) = Fir2Store(k,1:2,count-1);
-                        sigma_est_fire1(k,1) = Fir1Store(k,3,count-1);
-                        sigma_est_fire2(k,1) = Fir2Store(k,3,count-1);
-
-                    elseif k >= ind_est
-                        
-                        states_est(k,:) = trajectories_est(k+1,:,count-1);
-                        pos_est_fire1(k,:) = Fir1Store(k+1,1:2,count-1);
-                        pos_est_fire2(k,:) = Fir2Store(k+1,1:2,count-1);
-                        sigma_est_fire1(k,1) = Fir1Store(k+1,3,count-1);
-                        sigma_est_fire2(k,1) = Fir2Store(k+1,3,count-1);
-                    end
 
                 end
+                
 
             else
                 check_count(k) = 0;
@@ -587,7 +580,7 @@ if DO_SIMULATION
                 % If the drone is close to the initial position, set the vertical speed
                 control_est(i,2) = sign( 0.2 - states(i,3)) * min(vel_lin_z_max, Kp_z/100 * abs( 0.5 - states(i,3))); % flight_surface(initialUAV_pos(i,1),initialUAV_pos(i,1),0,1) +
 
-                if dist_to_initial < 5
+                if dist_to_initial < 8
 
                     control_est(i,1:2) = 0;
 
@@ -662,7 +655,6 @@ if DO_SIMULATION
         measure = (H * states' + [std_gps * randn(2, numUAV); ...
                                   std_ultrasonic * randn(1, numUAV); ...
                                   std_gyro * randn(1, numUAV)])';
-        measurements(:, :, count) = measure; % Save the measurements
 
         %% Extended Kalman Filter
 
@@ -684,7 +676,7 @@ if DO_SIMULATION
 
         %% UAV fail 
 
-        for k = 1:numUAV
+        for k = 1:totUAV
 
             % UAV fail save parameters
             if UAV_FAIL && UAV_check_fail == true && check_once
@@ -718,7 +710,7 @@ if DO_SIMULATION
             % Storing data properly during UAV fail
             if UAV_FAIL && t >= fail_time + dt && UAV_check_fail
                 if k < ind
-                    
+                    measurements(k, :, count) = measure(k,:); 
                     est_error(k,:,count) = abs(states_est(k,:) - states(k,:));
                     trajectories(k,:,count) = states(k,:);
                     trajectories_est(k,:,count) = states_est(k,:);
@@ -735,7 +727,8 @@ if DO_SIMULATION
                     P_trace(k,count) = trace(P);
 
                 elseif k == ind
-
+                    
+                    measurements(k, :, count) = [0, 0, 0, 0]; 
                     est_error(k,:,count) = 0;
                     trajectories(k,:,count) = trajectories(k,:,count-1);
                     trajectories_est(k,:,count) = trajectories_est(k,:,count-1);
@@ -753,6 +746,8 @@ if DO_SIMULATION
                     P_trace(k+1,count) = trace(P);
 
                 elseif k > ind
+
+                    measurements(k, :, count) = measure(k-1,:); 
                     est_error(k,:,count) = abs(states_est(k-1,:) - states(k-1,:));
                     trajectories(k,:,count) = states(k-1,:);
                     trajectories_est(k,:,count) = states_est(k-1,:);
@@ -770,22 +765,25 @@ if DO_SIMULATION
 
                 end
 
-                if k == numUAV
-                    est_error(k+1,:,count) = abs(states_est(k,:) - states(k,:));
-                    trajectories(k+1,:,count) = states(k,:);
-                    trajectories_est(k+1,:,count) = states_est(k,:);
-                    centroids_est_stor(k+1,:,count) = centroids_est(k,:);
-
-                    Fir1Store(k+1,1,count) = pos_est_fire1(k,1);
-                    Fir1Store(k+1,2,count) = pos_est_fire1(k,2);
-                    Fir1Store(k+1,3,count) = sigma_est_fire1(k,1);
-
-                    Fir2Store(k+1,1,count) = pos_est_fire2(k,1);
-                    Fir2Store(k+1,2,count) = pos_est_fire2(k,2);
-                    Fir2Store(k+1,3,count) = sigma_est_fire2(k,1);
-                end
+                % if k == numUAV && k ~= ind
+                % 
+                %     measurements(k+1, :, count) = measure(k,:); 
+                %     est_error(k+1,:,count) = abs(states_est(k,:) - states(k,:));
+                %     trajectories(k+1,:,count) = states(k,:);
+                %     trajectories_est(k+1,:,count) = states_est(k,:);
+                %     centroids_est_stor(k+1,:,count) = centroids_est(k,:);
+                % 
+                %     Fir1Store(k+1,1,count) = pos_est_fire1(k,1);
+                %     Fir1Store(k+1,2,count) = pos_est_fire1(k,2);
+                %     Fir1Store(k+1,3,count) = sigma_est_fire1(k,1);
+                % 
+                %     Fir2Store(k+1,1,count) = pos_est_fire2(k,1);
+                %     Fir2Store(k+1,2,count) = pos_est_fire2(k,2);
+                %     Fir2Store(k+1,3,count) = sigma_est_fire2(k,1);
+                % end
 
             else
+                measurements(k, :, count) = measure(k,:); 
                 est_error(k,:,count) = abs(states_est(k,:) - states(k,:));
                 trajectories(k,:,count) = states(k,:);
                 trajectories_est(k,:,count) = states_est(k,:);
@@ -823,7 +821,8 @@ if DO_SIMULATION
     % SIMULATION EVALUATION 
     
     disp(sprintf('Mean drop time distance: %f ', mean(drop_times_diff(3:end))));
-    disp(sprintf('Total Number of drops: %d', size(drop_times_diff) - 1));
+    totalDrops = numel(drop_times_diff) - 1;
+    disp(sprintf('Total Number of drops: %d', totalDrops));
 
     disp(sprintf('Number of drops on the Fire 1: %d', drops_f1));
     disp(sprintf('Number of drops on the Fire 2: %d', drops_f2));
