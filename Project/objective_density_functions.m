@@ -19,10 +19,7 @@ function [G_fires, G_water] = objective_density_functions(dimgrid,pos_fire1,pos_
 
     sigma = 20; 
     G_landing = exp( -(((x_m - initialUAV_pos(i,1)).^2 + (y_m - initialUAV_pos(i,2)).^2) / (2 * sigma^2)) );
-    %G_landing = exp(-vecnorm(region_points - initialUAV_pos(i, 1:2), 2, 2));
 
-
-    % filepath: c:\Users\jackb\Desktop\Distributed\Distributed_Project\Project\objective_density_functions.m
     if PLOT_DENSITY_FUNCTIONS
         figure('Units','normalized','Position',[0.1, 0.2, 0.8, 0.6]); 
 

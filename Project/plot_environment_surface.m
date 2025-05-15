@@ -17,7 +17,7 @@ function [X, Y, Z] = plot_environment_surface(bool)
             'EdgeColor', 'none', ...
             'FaceAlpha', 0.9);
 
-        theta = linspace(0, 2 * pi, 100); % Parametro angolare precomputato
+        theta = linspace(0, 2 * pi, 100); % Precomputed angular parameter
         r =  45;
         x_circle = r * cos(theta) + 50;
         y_circle = r * sin(theta) + 50;
@@ -25,19 +25,18 @@ function [X, Y, Z] = plot_environment_surface(bool)
 
         hold on;
 
-        % Plot dei fuochi
+        % Plot the fires
         plot3(300, 400, environment_surface(300, 400, 1), 'x', 'Color', 'r', 'MarkerSize', 50, 'LineWidth', 3);
         plot3(450, 50, environment_surface(450, 50, 1), 'x', 'Color', 'r', 'MarkerSize', 20, 'LineWidth', 3);
     
-        % Plot dell'acqua
+        % Plot the water
         plot3(x_circle, y_circle, z_circle, 'b', 'LineWidth', 2);
         
         % Add contour lines at Z-levels, projected onto the xy-plane
-        contour3(X, Y, Z, 20, ...    % 20 livelli di contorno
+        contour3(X, Y, Z, 20, ...    % 20 contour levels
             'LineWidth', 1, ...
-            'LineColor', 'k');       % nero
-        
-        % Optionally, per contorni piani:
+            'LineColor', 'k');       % black
+
         
         
         shading interp;

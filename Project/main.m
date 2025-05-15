@@ -221,7 +221,7 @@ sensor_range = 70;                          % Infrared measurement distance [m]
 meas_fire1 = zeros(numUAV,1);               % Variable used to perform a fire measurement just once
 meas_fire2 = zeros(numUAV,1);               % Variable used to perform a fire measurement just once
 
-% Each drone has an estimate of the measurement time of the other drones (we add some uncertanty)
+% Each UAV has an estimate of the measurement time of the other UAVs (we add some uncertanty)
 LastMeas1 = ones(numUAV,numUAV) + 6 * rand(numUAV,numUAV) - 3;           % At the beginning no one UAV has done a measurement
 LastMeas2 = ones(numUAV,numUAV) + 6 * rand(numUAV,numUAV) - 3;           % At the beginning no one UAV has done a measurement
 
@@ -284,10 +284,10 @@ dist_inc2 = zeros(numUAV,1);
 dist_real_inc2 = zeros(numUAV,1);
 
 % Voronoi Edges
-vx_Data = cell(1, tot_iter);    % Celle per memorizzare i dati di vx
-vy_Data = cell(1, tot_iter);    % Celle per memorizzare i dati di vy
+vx_Data = cell(1, tot_iter);    % Cells to store vx data for each iteration
+vy_Data = cell(1, tot_iter);    % Cells to store vy data for each iteration
 
-% Creazione della griglia di punti
+% Create a grid of points
 [x_m, y_m] = meshgrid(1:dimgrid(1), 1:dimgrid(2));
 
 % Drops time distance
@@ -334,7 +334,7 @@ if DO_SIMULATION
 
             end
 
-            if check_count(k) >= check_treshold      % If for some steps i did't recived any message, consider the drone crashed
+            if check_count(k) >= check_treshold      % If for some steps i did't recived any message, consider the UAV crashed
 
                 disp('Found a UAV crash');
                 UAV_check_fail = true;
@@ -458,7 +458,7 @@ if DO_SIMULATION
 
             end
             
-            % If the drone is close to a fire and its objective is 1 (heading to fire)
+            % If the UAV is close to a fire and its objective is 1 (heading to fire)
             if dist_inc1(i) <= inc_threshold1(i) && objective(i) == 1
 
                 sigma_fire1 = sigma_fire1 - deacreasingFire_factor;     % Reduce the extension of the first fire 
@@ -497,7 +497,7 @@ if DO_SIMULATION
 
             end
 
-            % If the drone is close to the water source and its objective is 2 (heading to refill)
+            % If the UAV is close to the water source and its objective is 2 (heading to refill)
             if dist_wat(i) <= wat_threshold && objective(i) == 2 && count_refill(i) == 0 
 
                 count_refill(i) = refill_time;
@@ -557,7 +557,7 @@ if DO_SIMULATION
         control_est(:,2) = sign(control_est(:,2)) .* min(abs(control_est(:,2)), vel_lin_z_max); % Limit linear velocity along z
         control_est(:,3) = sign(control_est(:,3)) .* min(abs(control_est(:,3)), vel_ang_max); % Limit angular velocity
 
-        % If the UAV crashed but other drones don't know yet
+        % If the UAV crashed but other UAVs don't know yet
         if UAV_FAIL && t >= fail_time + dt && UAV_check_fail == false
 
             control_est(ind,:) = [0,0,0];
@@ -573,7 +573,7 @@ if DO_SIMULATION
 
             if dist_to_initial < 100 && objective(i) == 3
 
-                % If the drone is close to the initial position, set the vertical speed
+                % If the UAV is close to the initial position, set the vertical speed
                 control_est(i,2) = sign( 0.2 - states(i,3)) * min(vel_lin_z_max, Kp_z/100 * abs( 0.5 - states(i,3))); % flight_surface(initialUAV_pos(i,1),initialUAV_pos(i,1),0,1) +
 
                 if dist_to_initial < 8
@@ -949,22 +949,22 @@ if ANIMATION
     axis(ax,[0 dimgrid(1) 0 dimgrid(2) 0 dimgrid(3)]);
     hold(ax,'on');
     
-    % Loading texture 
-    texture = imread('Mountain.jpg');  % deve essere RGB
+    % Loading texture
+    texture = imread('Mountain.jpg');  % Must be RGB
     texture_resized = imresize(texture, [size(Xf,1), size(Xf,2)]);
-    texture_resized = double(texture_resized) / 255;  % Normalizza tra 0 e 1
+    texture_resized = double(texture_resized) / 255;  % Normalize between 0 and 1
 
-    % Aumenta la luminosità
+    % Increase brightness
     brightness_factor = 1.5;
     texture_resized = min(texture_resized * brightness_factor, 1);
 
-    % Crea uno sfondo verde uniforme
+    % Create a uniform green background
     green_background = repmat(reshape([0.4660 0.6740 0.1880], 1, 1, 3), size(texture_resized, 1), size(texture_resized, 2));
 
-    % Fattore di trasparenza (0 = solo sfondo verde, 1 = solo texture)
-    alpha = 0.2;  % <-- regola questo valore
+    % Transparency factor (0 = only green background, 1 = only texture)
+    alpha = 0.2;  % <-- adjust this value
 
-    % Mix tra texture e sfondo
+    % Blend texture and background
     blended_texture = (alpha * texture_resized + (1 - alpha) * green_background);
 
     % ─── static terrain ───────────────────────────────
@@ -975,8 +975,6 @@ if ANIMATION
 
     lighting none;
 
-
-    % Aggiungi le linee di contorno
     contour3(ax, Xf, Yf, Zf, 20, 'k');
     
     % ─── static water circle ──────────────────────────
