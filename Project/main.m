@@ -5,7 +5,7 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;                                      % Time step
-T_sim = 30;                                     % Simulation time
+T_sim = 3;                                     % Simulation time
 scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
@@ -95,14 +95,14 @@ communication_prob = 0.05;          % Probability of NOT communication
 %% Measurement Parameters
 
 % Measurements frequencies
-meas_freq_GPS = 10; % 10 Hz
+meas_freq_GPS = 1; % 10 Hz
 meas_freq_ultr = 4; % 25 Hz
-meas_freq_gyr = 1; % 100 Hz
+meas_freq_gyr = 1; % 0 Hz
 
 % Standard deviations
 std_gps = 3;                                                        % Standard deviation of the GPS
 std_ultrasonic = 1.5;                                               % Standard deviation of the ultrasonic sensor
-std_gyro = 0.3;                                                     % Standard deviation of the gyroscope
+std_gyro = 1;                                                     % Standard deviation of the gyroscope
 R = diag([std_gps^2, std_gps^2, std_ultrasonic^2, std_gyro^2]);     % Covariance of the measurement noise
 
 %% Kalman Filter Parameters
@@ -120,7 +120,7 @@ G = @(theta, deltat) [cos(theta) * deltat,      0,      0;
                                         0,      0, deltat];
 
 % Covariance of the process noise
-std_u = [1, 1, 0.2];                % Uncertainty on the linear velocity in x-y,
+std_u = [1, 1, 1];                % Uncertainty on the linear velocity in x-y,
                                     % linear velocity in z and angular velocity
 
 Q = diag(std_u.^2);                 % Covariance matrix of model and control uncertanty
@@ -129,7 +129,10 @@ Q = diag(std_u.^2);                 % Covariance matrix of model and control unc
 states_est = (states' + [std_gps * randn(2, numUAV); zeros(1, numUAV); std_gyro * randn(1, numUAV)])';
 
 
-% Observation matrix (H)
+% Observation matrix (H,h)
+h = @(s,theta_old,dt,err) [s(:,1)+err(:,1),  s(:,2)+err(:,2),  s(:,3)+err(:,3),  (s(:,4)-theta_old)/dt+err(:,4)]; % We measure the position and the angle of the UAV 
+
+% H = dh/dx|err=0
 H = [1, 0, 0,    0;
      0, 1, 0,    0;
      0, 0, 1,    0;
@@ -647,17 +650,24 @@ if DO_SIMULATION
         end
 
         %% Measure
-        
-        measure = (H * states' + [std_gps * randn(2, numUAV); ...
+        measure = h(states, states_est(:,4), dt, [  std_gps * randn(numUAV,1 ), ...
+                                            std_gps * randn(numUAV,1), ...
+                                            std_ultrasonic * randn(numUAV,1), ...
+                                            std_gyro * randn(numUAV,1)]);
+
+        %{
+         measure = (H * states' + [std_gps * randn(2, numUAV); ...
                                   std_ultrasonic * randn(1, numUAV); ...
-                                  std_gyro * randn(1, numUAV)])';
+                                  std_gyro * randn(1, numUAV)])'; 
+        %}
+
 
         %% Extended Kalman Filter
 
         for k = 1:numUAV
 
             [states_est(k,:), P] = ExtendedKalmanFilter_function(states_est(k,:), measure(k,:), control_est(k,:), ...
-                                                                 A, G, fun, Q, H, R, P, count, ...
+                                                                 A, G, fun, Q, h, H, R, P, count, ...
                                                                  meas_freq_GPS, meas_freq_ultr, meas_freq_gyr, dt);
 
             P_trace(k,count) = trace(P);
