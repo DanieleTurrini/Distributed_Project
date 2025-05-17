@@ -5,19 +5,19 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;                                      % Time step
-T_sim = 3;                                     % Simulation time
+T_sim = 30;                                     % Simulation time
 scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
 DO_SIMULATION = true;
-UAV_FAIL = true;
+UAV_FAIL = false;
 
 PLOT_ENVIRONMENT = false;
 PLOT_DENSITY_FUNCTIONS = false;
-PLOT_TRAJECTORIES = true;
-PLOT_COVARIANCE_TRACE = true;
-PLOT_CONSENSUS = true;
-PLOT_EKF_ERROR = true;
+PLOT_TRAJECTORIES = false;
+PLOT_COVARIANCE_TRACE = false;
+PLOT_CONSENSUS = false;
+PLOT_EKF_ERROR = false;
 
 PLOT_ITERATIVE_SIMULATION = false;
 ANIMATION = true;
@@ -140,7 +140,10 @@ H = [1, 0, 0,    0;
                             %  it measure the angular velocity)
 
 % Covariance matrix of the initial estimate
-P = eye(4) * 5;            % We consider some starting uncertanty
+P = zeros(4,4,numUAV);
+for k = 1:numUAV
+    P(:,:,k) = eye(4) * 5;   % Consideriamo un'incertezza iniziale per ogni UAV
+end
 
 %% Map Parameters
 
@@ -663,16 +666,28 @@ if DO_SIMULATION
 
 
         %% Extended Kalman Filter
-
         for k = 1:numUAV
 
-            [states_est(k,:), P] = ExtendedKalmanFilter_function(states_est(k,:), measure(k,:), control_est(k,:), ...
-                                                                 A, G, fun, Q, h, H, R, P, count, ...
-                                                                 meas_freq_GPS, meas_freq_ultr, meas_freq_gyr, dt);
+            [states_est(k,:), P(:,:,k)] = ExtendedKalmanFilter_function(states_est(k,:), measure(k,:), control_est(k,:), ...
+                A, G, fun, Q, h, H, R, P(:,:,k), count, ...
+                meas_freq_GPS, meas_freq_ultr, meas_freq_gyr, dt);
 
-            P_trace(k,count) = trace(P);
-
+            P_trace(k,count) = trace(P(:,:,k));
         end
+
+
+        %{
+                for k = 1:numUAV
+
+                    [states_est(k,:), P] = ExtendedKalmanFilter_function(states_est(k,:), measure(k,:), control_est(k,:), ...
+                                                                        A, G, fun, Q, h, H, R, P, count, ...
+                                                                        meas_freq_GPS, meas_freq_ultr, meas_freq_gyr, dt);
+
+                    P_trace(k,count) = trace(P);
+
+                end 
+        %}
+
 
         % Save Voronoi edges
         [vx, vy] = voronoi(states_est(:,1), states_est(:,2));
@@ -731,6 +746,7 @@ if DO_SIMULATION
                     Fir2Store(k,3,count) = sigma_est_fire2(k,1);
 
                     P_trace(k,count) = trace(P);
+                    
 
                 elseif k == ind
                     
