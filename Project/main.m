@@ -10,7 +10,7 @@ scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
 DO_SIMULATION = true;
-UAV_FAIL = false;
+UAV_FAIL = true;
 
 PLOT_ENVIRONMENT = false;
 PLOT_DENSITY_FUNCTIONS = false;
@@ -745,7 +745,7 @@ if DO_SIMULATION
                     Fir2Store(k,2,count) = pos_est_fire2(k,2);
                     Fir2Store(k,3,count) = sigma_est_fire2(k,1);
 
-                    P_trace(k,count) = trace(P);
+                    P_trace(k,count) = trace(P(:,:,k));
                     
 
                 elseif k == ind
@@ -765,8 +765,7 @@ if DO_SIMULATION
                     Fir2Store(k,:,count) = [0,0,0];
 
                     P_trace(k,count) = 0;
-                    P_trace(k+1,count) = trace(P);
-
+                    P_trace(k+1,count) = trace(P(:,:,k));
                 elseif k > ind
 
                     measurements(k, :, count) = measure(k-1,:); 
@@ -783,7 +782,7 @@ if DO_SIMULATION
                     Fir2Store(k,2,count) = pos_est_fire2(k-1,2);
                     Fir2Store(k,3,count) = sigma_est_fire2(k-1,1);
 
-                    P_trace(k+1,count) = trace(P);
+                    P_trace(k+1,count) = trace(P(:,:,k));
 
                 end
 
