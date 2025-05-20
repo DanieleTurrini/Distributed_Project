@@ -2,9 +2,8 @@ function plotCovarianceTrace(numUAV,P_trace)
 
 
     for i = 1:numUAV
-        figure(6 + numUAV);
-        subplot(numUAV,1,i);
-        % Plot the trace of the covariance matrix for the current UAV over time.
+        figure;
+        % Plot the trace of  the covariance matrix for the current UAV over time.
         plot(squeeze(P_trace(i,:)));
 
         xlabel('Time');
