@@ -5,17 +5,17 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;                                      % Time step
-T_sim = 30;                                     % Simulation time
+T_sim = 3;                                     % Simulation time
 scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
 DO_SIMULATION = true;
-UAV_FAIL = true;
+UAV_FAIL = false;
 
 PLOT_ENVIRONMENT = false;
 PLOT_DENSITY_FUNCTIONS = false;
 PLOT_TRAJECTORIES = false;
-PLOT_COVARIANCE_TRACE = false;
+PLOT_COVARIANCE_TRACE = true;
 PLOT_CONSENSUS = false;
 PLOT_EKF_ERROR = false;
 
@@ -82,7 +82,12 @@ fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
 %% UAV Fail paramters
 
 UAV_check_fail = false;             % Check if the UAV is failed
-fail_time = 9;                      % Time instant when one UAV fail 
+fail_time = 9;                      % Time instant when one UAV fail
+
+if fail_time > T_sim
+    UAV_FAIL = false;
+end
+
 ind = 1;                            % UAV that fails
 ind_est = 0;                        % Initialization of ind_est
 check = ones(numUAV, 1);            % Variable that they periodically exchange 
@@ -527,7 +532,7 @@ if DO_SIMULATION
         % We use the same matrix Q for both the coordinates and the extension
 
         % --- Fire 1 ---
-        pos_est_fire1(:,1) = Qc1 * pos_est_fire1(:,1);
+        pos_est_fire1(:,1) = Qc1 * pos_est_fire1(:,1); % pos_est_fire(k+1) = Qc^k *  pos_est_fire(1)
         pos_est_fire1(:,2) = Qc1 * pos_est_fire1(:,2);
         sigma_est_fire1(:,1) = Qc1 * sigma_est_fire1(:,1);
 
@@ -535,6 +540,7 @@ if DO_SIMULATION
         pos_est_fire2(:,1) = Qc2 * pos_est_fire2(:,1);
         pos_est_fire2(:,2) = Qc2 * pos_est_fire2(:,2);
         sigma_est_fire2(:,1) = Qc2 * sigma_est_fire2(:,1);
+
 
         % If the sigma is under a certian value means that the fire 1 is off
         if sigma_est_fire1(:,1) < trashold_sigma_fire
