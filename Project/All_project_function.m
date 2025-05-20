@@ -1,20 +1,26 @@
-function [ mean_drops_inTime,totalDrops, drops_f1, drops_f2] = All_project_function(numUAV,UAV_FAIL,std_gps,std_ultrasonic,std_gyro,std_u)
+function [ mean_drops_inTime,totalDrops, drops_f1, drops_f2] = All_project_function(numUAV, sigma_fire1, sigma_fire2, UAV_FAIL, std_gps, std_ultrasonic, std_gyro, std_u)
     
     % Set default values if not provided
-    if nargin < 6 || isempty(std_u)
+    if nargin < 8 || isempty(std_u)
         std_u = [10, 10, 10];
     end
-    if nargin < 5 || isempty(std_gyro)
+    if nargin < 7 || isempty(std_gyro)
         std_gyro = 1;
     end
-    if nargin < 4 || isempty(std_ultrasonic)
+    if nargin < 6 || isempty(std_ultrasonic)
         std_ultrasonic = 1.5;
     end
-    if nargin < 3 || isempty(std_gps)
+    if nargin < 5 || isempty(std_gps)
         std_gps = 3;
     end
-    if nargin < 2 || isempty(UAV_FAIL)
+    if nargin < 4 || isempty(UAV_FAIL)
         UAV_FAIL = false;
+    end
+    if nargin < 3 || isempty(sigma_fire2)
+        sigma_fire2 = 25;
+    end
+    if nargin < 2 || isempty(sigma_fire1)
+        sigma_fire1 = 50;
     end
 
     %% Simulation Parameters 
@@ -188,13 +194,13 @@ function [ mean_drops_inTime,totalDrops, drops_f1, drops_f2] = All_project_funct
     % Simulated moving fire 1
     pos_fire1_mov = @(t) [x_fire1 - 5 * (t - 1) , y_fire1 - 2 * (t - 1)]; % t start from 1
     
-    sigma_fire1 = 50;                           % Standard deviation of the first fire
+    %sigma_fire1 = 50;                           % Standard deviation of the first fire
                                                 % (corresponding to the extention of the fire)
     
     % Simulated moving fire 2
     pos_fire2_mov = @(t) [x_fire2 - 2.5 * (t - 1) , y_fire2 + 1 * (t - 1)]; % t start from 1
     
-    sigma_fire2 = 25;                           % Standard deviation of the second fire
+    %sigma_fire2 = 25;                           % Standard deviation of the second fire
                                                 % (corresponding to the extention of the fire)
     
     inc_threshold1 = sigma_fire1 * drop_dist;   % Distance that has to be reach from the fire 1 
@@ -362,7 +368,7 @@ function [ mean_drops_inTime,totalDrops, drops_f1, drops_f2] = All_project_funct
     
                 if check_count(k) >= check_treshold      % If for some steps i did't recived any message, consider the UAV crashed
     
-                    disp('Found a UAV crash');
+                    %disp('Found a UAV crash');
                     UAV_check_fail = true;
                     ind_est = k;
                     
@@ -533,7 +539,7 @@ function [ mean_drops_inTime,totalDrops, drops_f1, drops_f2] = All_project_funct
                 % if all the fires are extinguished, the UAVs objective is = 3 
                 if sigma_est_fire1(i,1) <= 0 && sigma_est_fire2(i,1) <= 0
     
-                    disp('ALL FIRE ESTINGUISHED');
+                    %disp('ALL FIRE ESTINGUISHED');
                     objective(i) = 3; % Change objective to 3 (all fires estinguished)
                     meas_fire1(i) = 0;
                     meas_fire2(i) = 0;
