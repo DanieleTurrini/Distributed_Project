@@ -11,16 +11,16 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;                                      % Time step
-T_sim = 30;                                     % Simulation time
+T_sim = 3;                                     % Simulation time
 scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
 DO_SIMULATION = true;
-UAV_FAIL = false;
+UAV_FAIL = true;
 
-PLOT_ENVIRONMENT = false;
+PLOT_ENVIRONMENT = true;
 PLOT_DENSITY_FUNCTIONS = false;
-PLOT_TRAJECTORIES = false;
+PLOT_TRAJECTORIES = true;
 PLOT_COVARIANCE_TRACE = true;
 PLOT_CONSENSUS = false;
 PLOT_EKF_ERROR = false;
@@ -39,7 +39,7 @@ vel_lin_min = 50;                   % Minimum linear velocity [m/s]
 vel_lin_z_max = 100;                % Maximum linear velocity along z [m/s]
 vel_ang_max = 10;                   % Maximum angular velocity [rad/s]
 dim_UAV = 4;                        % Dimension of the UAV
-numUAV = 7;                         % Number of UAV
+numUAV = 3;                         % Number of UAV
 totUAV = numUAV;                    % Initial Number of UAV
 Kp_z = 100;                         % Proportional gain for the linear velocity along z
 Kp = 50;                            % Proportional gain for the linear velocity  
@@ -137,7 +137,9 @@ std_u = [1, 1, 1];                % Uncertainty on the linear velocity in x-y,
 Q = diag(std_u.^2);                 % Covariance matrix of model and control uncertanty
 
 % Initial state (x,y,z,theta)
-states_est = (states' + [std_gps * randn(2, numUAV); zeros(1, numUAV); std_gyro * randn(1, numUAV)])';
+states_est = (states' + [std_gps * randn(2, numUAV); ...
+                         zeros(1, numUAV); ...
+                         std_gyro * randn(1, numUAV)])';
 
 
 % Observation matrix (H,h)
@@ -150,17 +152,22 @@ H = [1, 0, 0,    0;
      0, 0, 0, 1/dt];        % (we measure theta with a gyroscope, 
                             %  it measure the angular velocity)
 
-% Covariance matrix of the initial estimate
-P = zeros(4,4,numUAV);
+
+P = zeros(4,4,numUAV);       % Covariance matrix of the initial estimate
+
 for k = 1:numUAV
-    P(:,:,k) = eye(4) * 5;   % Consideriamo un'incertezza iniziale per ogni UAV
+    P(:,:,k) = eye(4) * 5;   % We consider the same uncertanty for all the UAVs
 end
 
 %% Map Parameters
 
-dimgrid = [500 500 500];                    % Define the dimensions of the Map
+dimgrid = [1000 1000 500];                    % Define the dimensions of the Map
 
-[Xf, Yf, Zf] = plot_environment_surface(PLOT_ENVIRONMENT);
+if PLOT_ENVIRONMENT
+
+    [Xf, Yf, Zf] = plot_environment_surface(dimgrid);
+
+end
 
 %% Fires Parameters
 
@@ -211,7 +218,7 @@ for i = 1:numUAV
 end
 
 % Decreasing factor of the fire
-deacreasingFire_factor = 4;                 % Decreasing factor of the fire extension
+deacreasingFire_factor = 8;                 % Decreasing factor of the fire extension
                                             % (we assume that the fire decrease every time the UAV drop the water)
                         
 %% Water Parameters
@@ -334,6 +341,7 @@ if DO_SIMULATION
 
         % See if communication is present
         for k = 1:totUAV
+
             if rand(1) < communication_prob && count > 1
 
                 check(k) = 0;       % NO communication
@@ -426,7 +434,7 @@ if DO_SIMULATION
                 sigma_est_fire1(i,1) = sigma_fire1 + 4 * rand - 2;          
 
                 LastMeas1(i,:) = 1 + (2 * rand(1,numUAV) - 1);  % Set to 1 the LastMeas with some uncertanty becouse the
-                                                              % messages could arrive to the other UAVs with some delay 
+                                                                % messages could arrive to the other UAVs with some delay 
                 invLastMeas1 = 1 ./ LastMeas1;
 
                 for j = 1:numUAV
@@ -480,7 +488,7 @@ if DO_SIMULATION
 
                 sigma_fire1 = sigma_fire1 - deacreasingFire_factor;     % Reduce the extension of the first fire 
 
-                if sigma_fire1 <= 0
+                if sigma_fire1 <= trashold_sigma_fire
 
                     sigma_fire1 = 0;
 
@@ -498,7 +506,7 @@ if DO_SIMULATION
                 
                 sigma_fire2 = sigma_fire2 - deacreasingFire_factor;     % Reduce the extension of the first fire
 
-                if sigma_fire2 <= 0
+                if sigma_fire2 <= trashold_sigma_fire
 
                     sigma_fire2 = 0;
 
@@ -592,7 +600,7 @@ if DO_SIMULATION
             if dist_to_initial < 100 && objective(i) == 3
 
                 % If the UAV is close to the initial position, set the vertical speed
-                control_est(i,2) = sign( 0.2 - states(i,3)) * min(vel_lin_z_max, Kp_z/100 * abs( 0.5 - states(i,3))); % flight_surface(initialUAV_pos(i,1),initialUAV_pos(i,1),0,1) +
+                control_est(i,2) = sign( 0.2 - states(i,3)) * min(vel_lin_z_max, Kp_z/10 * abs( 0.2 - states(i,3))); % flight_surface(initialUAV_pos(i,1),initialUAV_pos(i,1),0,1) +
 
                 if dist_to_initial < 8
 
@@ -670,12 +678,6 @@ if DO_SIMULATION
                                             std_ultrasonic * randn(numUAV,1), ...
                                             std_gyro * randn(numUAV,1)]);
 
-        %{
-         measure = (H * states' + [std_gps * randn(2, numUAV); ...
-                                  std_ultrasonic * randn(1, numUAV); ...
-                                  std_gyro * randn(1, numUAV)])'; 
-        %}
-
 
         %% Extended Kalman Filter
         for k = 1:numUAV
@@ -686,19 +688,6 @@ if DO_SIMULATION
 
             P_trace(k,count) = trace(P(:,:,k));
         end
-
-
-        %{
-                for k = 1:numUAV
-
-                    [states_est(k,:), P] = ExtendedKalmanFilter_function(states_est(k,:), measure(k,:), control_est(k,:), ...
-                                                                        A, G, fun, Q, h, H, R, P, count, ...
-                                                                        meas_freq_GPS, meas_freq_ultr, meas_freq_gyr, dt);
-
-                    P_trace(k,count) = trace(P);
-
-                end 
-        %}
 
 
         % Save Voronoi edges
@@ -778,6 +767,7 @@ if DO_SIMULATION
 
                     P_trace(k,count) = 0;
                     P_trace(k+1,count) = trace(P(:,:,k));
+
                 elseif k > ind
 
                     measurements(k, :, count) = measure(k-1,:); 
