@@ -1,11 +1,4 @@
-    % Function to generate trajectory and covariance plots for each UAV
-    %
-    % Input:
-    %   numUAV - Number of UAVs
-    %   trajectories - Real trajectories (numUAV x 4 x time)
-    %   trajectories_est - Estimated trajectories (numUAV x 4 x time)
-    %   Dimgrid - Dimensions of the grid [X, Y]
-    %   measurements - GPS measurements (numUAV x 2 x time)
+% Function to generate trajectory and covariance plots for each UAV
 
 function plotUAVTrajectories_function(numUAV, trajectories, trajectories_est, Dimgrid,measurements)
 
