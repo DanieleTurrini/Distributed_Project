@@ -1,3 +1,7 @@
+% drawUAV2D Draws a 2D representation of a UAV as a triangle-like unicycle.
+%   drawUAV2D(X, Y, Theta, dim, col) plots the UAV at position (X, Y) with
+%   orientation Theta, size dim, and color col.
+
 function drawUAV2D(X,Y,Theta,dim,col)
     
     %Triangle-like unicycle

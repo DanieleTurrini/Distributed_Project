@@ -1,3 +1,9 @@
+% plotConsensus_function Visualizes the consensus estimation of fire parameters by multiple UAVs.
+%   This function generates a figure with three subplots showing the estimated X coordinate,
+%   Y coordinate, and extension (sigma) of a specified fire over time. The real values and
+%   the estimates from each UAV are plotted for comparison, allowing assessment of the consensus
+%   and estimation accuracy among the UAVs.
+
 function plotConsensus_function (numFir, numfig, numUAV, posFirStoreReal, sigmaFirStoreReal, FirStore)
 
     figure(numfig);

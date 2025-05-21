@@ -1,3 +1,10 @@
+% PLOT_ENVIRONMENT_SURFACE Plots a 3D surface representing the environment map.
+%   [X, Y, Z] = PLOT_ENVIRONMENT_SURFACE(BOOL) generates a meshgrid over a
+%   specified range and computes the surface heights using the environment_surface
+%   function. If BOOL is true, it visualizes the surface with additional features
+%   such as fire locations, a water region, and contour lines for enhanced
+%   visualization. Returns the meshgrid coordinates X, Y, and the computed heights Z.
+
 function [X, Y, Z] = plot_environment_surface(bool)
     % Define grid range
     x_range = linspace(0, 500, 300); 

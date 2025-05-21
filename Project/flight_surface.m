@@ -1,3 +1,9 @@
+% FLIGHT_SURFACE Computes the height of a flight surface at given coordinates.
+%   height = flight_surface(x, y, h, scenario) returns the surface height at
+%   position (x, y) for a specified scenario. In scenario 1, the function
+%   models a terrain with Gaussian hills and a flat region using a smooth
+%   transition. For other scenarios, the height is set to zero.
+
 function height = flight_surface(x, y, h, scenario)
 
     % Define Gaussian function parameters

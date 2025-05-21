@@ -1,3 +1,7 @@
+% voronoi_function_FW computes the Voronoi partitioning for a set of UAVs over a grid,
+% calculates the area and weighted centroid of each UAV's region based on different objectives,
+% and determines the control velocities for each UAV.
+
 function [areas, weigth_centroids, vel] = voronoi_function_FW( numUAV, dimgrid, states, Kp_z, Kp, Ka, pos_est_fire1, pos_est_fire2, sigma_est_fire1, sigma_est_fire2, G_water,height_flight, scenario, objective, initialUAV_pos)
 
     % Create a grid of points with dimensions specified by dimgrid

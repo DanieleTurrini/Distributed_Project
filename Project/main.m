@@ -2,6 +2,12 @@ clear;
 close all;
 clc;
 
+% main.m
+% This script simulates a fleet of UAVs collaborating to detect and extinguish multiple dynamic fires in a 3D environment.
+% Each UAV estimates fire positions and sizes using sensors and an Extended Kalman Filter, coordinates actions via consensus algorithms,
+% manages water refills, and handles possible UAV failures. The simulation visualizes UAV trajectories, fire evolution, and system performance.
+% Goal: Evaluate the cooperative and robust capability of the UAV fleet to extinguish moving fires in a distributed manner.
+
 %% Simulation Parameters 
 
 dt = 0.01;                                      % Time step

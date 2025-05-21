@@ -1,3 +1,8 @@
+% UAV_CONTROL Computes the velocity command for a UAV to move towards a target centroid.
+%   vel = UAV_control(weigth_centroids, state, Kp, Ka) calculates the linear and angular
+%   velocities required for the UAV to reach the specified centroid position using proportional
+%   control gains for position (Kp) and angle (Ka).
+
 function vel = UAV_control(weigth_centroids, state, Kp, Ka)
      
     distances = norm(weigth_centroids - state(1:2));

@@ -1,3 +1,8 @@
+% ENVIRONMENT_SURFACE Computes the surface height at given (x, y) coordinates for a specified scenario.
+%   height = ENVIRONMENT_SURFACE(x, y, scenario) returns the height of the environment surface
+%   at the coordinates (x, y) based on the selected scenario. For scenario 1, the surface is
+%   modeled as a sum of Gaussian functions. For other scenarios, the height is set to zero.
+
 function height = environment_surface(x, y, scenario)
     % Define Gaussian function parameters
     if scenario == 1

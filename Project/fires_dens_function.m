@@ -1,3 +1,10 @@
+% FIRES_DENS_FUNCTION Generates a 2D grid representing the combined density of two fires.
+%   G_fires = fires_dens_function(dimgrid, pos_est_fire1, pos_fire2, sigma_fire1, sigma_fire2)
+%   creates a matrix G_fires of size dimgrid, where each element represents the sum of two
+%   Gaussian distributions centered at pos_est_fire1 and pos_fire2, with standard deviations
+%   sigma_fire1 and sigma_fire2, respectively. This function is useful for modeling the spatial
+%   intensity distribution of two fire sources on a grid.
+
 function G_fires = fires_dens_function(dimgrid,pos_est_fire1,pos_fire2,sigma_fire1,sigma_fire2)
 
 [x_m, y_m] = meshgrid(1:dimgrid(1), 1:dimgrid(2));

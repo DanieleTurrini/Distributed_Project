@@ -1,3 +1,10 @@
+% simulationEvaluation.m
+% This script evaluates the performance of a UAV-based fire suppression simulation.
+% It runs two sets of experiments: 
+%   1) Varying the number of UAVs and recording key performance metrics.
+%   2) Varying the spread parameter (sigma) of Fire 1 while keeping the number of UAVs fixed.
+% Results are saved to CSV files and visualized using plots.
+
 clear;
 clc;
 close all;

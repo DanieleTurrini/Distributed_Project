@@ -1,3 +1,10 @@
+%EXTENDEDKALMANFILTER_FUNCTION Performs one iteration of the Extended Kalman Filter (EKF).
+%   [x, P] = ExtendedKalmanFilter_function(states_est, measure, control, A, G, fun, Q, h, H, R, P, count, meas_freq_GPS, meas_freq_ultr, meas_freq_gyr, dt)
+%   predicts the next state and updates the state estimate and covariance
+%   using probabilistic measurements from GPS, ultrasonic, and gyroscope sensors.
+%   The function handles prediction and selective measurement updates based on
+%   sensor availability and measurement probabilities.
+
 function [x, P] = ExtendedKalmanFilter_function(states_est, measure, control, A, G, fun, Q, h, H, R, P, count, meas_freq_GPS, meas_freq_ultr, meas_freq_gyr, dt)
     
     %% Measure Probability

@@ -1,3 +1,8 @@
+% plotCovarianceTrace plots the trace of the covariance matrix over time for each UAV.
+% 
+%   plotCovarianceTrace(numUAV, P_trace) creates a separate figure for each UAV,
+%   displaying how the trace of its covariance matrix evolves over time.
+
 function plotCovarianceTrace(numUAV,P_trace)
 
 

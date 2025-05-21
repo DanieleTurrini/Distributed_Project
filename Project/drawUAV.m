@@ -1,3 +1,8 @@
+% drawUAV Draws a triangle-like UAV at the specified position and orientation.
+%   drawUAV(X, Y, Z, Theta, dim, col) plots a UAV at coordinates (X, Y, Z)
+%   with heading angle Theta, size dim, and color col. Also draws a vertical
+%   dashed line from the ground to the UAV position.
+
 function drawUAV(X,Y,Z,Theta,dim,col)
     
     %Triangle-like unicycle

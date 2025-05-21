@@ -1,3 +1,10 @@
+% ALL_PROJECT_FUNCTION Simulates a multi-UAV firefighting scenario.
+%   [mean_drops_inTime, totalDrops, drops_f1, drops_f2] = ALL_PROJECT_FUNCTION(numUAV, sigma_fire1, sigma_fire2, UAV_FAIL, std_gps, std_ultrasonic, std_gyro, std_u)
+%   runs a simulation where multiple UAVs cooperate to extinguish two moving fires,
+%   using consensus and estimation algorithms, with optional UAV failure and sensor noise.
+%   The function returns the mean time between water drops, total number of drops,
+%   and the number of drops on each fire.
+
 function [ mean_drops_inTime,totalDrops, drops_f1, drops_f2] = All_project_function(numUAV, sigma_fire1, sigma_fire2, UAV_FAIL, std_gps, std_ultrasonic, std_gyro, std_u)
     
     % Set default values if not provided

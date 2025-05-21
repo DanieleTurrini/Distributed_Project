@@ -1,3 +1,10 @@
+% plotEKFerror Visualizes the estimation errors for multiple UAVs using subplots.
+%   plotEKFerror(numUAV, est_error) creates a separate figure for each UAV,
+%   displaying the estimation errors in X, Y, Z, and Theta over time.
+%   The function expects est_error to be a 3D array with dimensions
+%   (numUAV, 4, time), where the second dimension corresponds to
+%   [X, Y, Z, Theta] errors.
+
 function plotEKFerror(numUAV, est_error)
 
     for i = 1:numUAV

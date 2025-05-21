@@ -1,3 +1,6 @@
+% OBJECTIVE_DENSITY_FUNCTIONS Computes and optionally plots Gaussian density functions for fire sources, water source, and UAV landing zone.
+%   returns the combined fire density (G_fires) and water source density (G_water) over a grid, and can visualize these along with the UAV landing density.
+
 function [G_fires, G_water] = objective_density_functions(dimgrid,pos_fire1,pos_fire2,pos_water,sigma_fire1,sigma_fire2,sigma_water,t,initialUAV_pos, PLOT_DENSITY_FUNCTIONS)
     
 
