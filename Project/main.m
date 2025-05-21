@@ -106,7 +106,7 @@ communication_prob = 0.05;          % Probability of NOT communication
 %% Measurement Parameters
 
 % Measurements frequencies
-meas_freq_GPS = 1; % 10 Hz
+meas_freq_GPS = 10; % 10 Hz
 meas_freq_ultr = 4; % 25 Hz
 meas_freq_gyr = 1; % 0 Hz
 
