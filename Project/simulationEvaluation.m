@@ -54,7 +54,7 @@ sgtitle('Simulation results as a function of the number of UAVs');
 % Second loop: varying sigma_fire1 and number of UAVs set to 5
 results_sigma = zeros(length(sigma_fire1_range), 6); % UAV, sigma_fire1, mean_drops_inTime, totalDrops, drops_f1, drops_f2
 numUAV = 5;
-sigma_fire2 = 25; % Fixed sigma_fire2
+sigma_fire2 = 50; % Fixed sigma_fire2
 
 for j = 1:length(sigma_fire1_range)
     sigma_fire1 = sigma_fire1_range(j);
@@ -95,4 +95,4 @@ xlabel('Sigma Fire 1');
 ylabel('Drops on Fire 2');
 title('Drops on Fire 2 vs Sigma Fire 1');
 
-sgtitle('Simulation results as a function of Sigma Fire 1 (UAV=5, Sigma Fire 2=25)');
+sgtitle('Simulation results as a function of Sigma Fire 1 (UAV=5, Sigma Fire 2=50)');

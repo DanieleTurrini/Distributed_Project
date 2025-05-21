@@ -57,7 +57,7 @@ function [ mean_drops_inTime,totalDrops, drops_f1, drops_f2] = All_project_funct
     %numUAV = 20;                         % Number of UAV
     totUAV = numUAV;                    % Initial Number of UAV
     Kp_z = 100;                         % Proportional gain for the linear velocity along z
-    Kp = 5;                            % Proportional gain for the linear velocity  
+    Kp = 50;                            % Proportional gain for the linear velocity  
     Ka = 10;                            % Proportional gain for the angular velocity
     height_flight = 30;                 % Height of flight from the ground 
     

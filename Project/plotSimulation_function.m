@@ -1,11 +1,19 @@
+% plotSimulation_function Visualizes the simulation of UAVs, fire, and water sources in 3D and 2D.
+%   This function plots the positions and estimated states of multiple UAVs,
+%   fire locations (both true and estimated), and water sources within a defined
+%   environment.
+
 function plotSimulation_function(states, states_est, centroids_est, numUAV, dimgrid, pos_est_fire1, x_fire1, y_fire1, sigma_est_fire1, curr_fire1_sig, x_fire2, y_fire2, sigma_fire2, x_water, y_water, sigma_water, Xf, Yf, Zf, dim_UAV, numfig)
-    % Funzione ottimizzata per la simulazione dei droni e degli obiettivi
 
     figure(numfig); clf;
     subplot(1,2,1);
-    set(gcf, 'Position', [0, 100, 1400, 600]); % Imposta la dimensione della figura per adattarsi meglio allo schermo
-    theta = linspace(0, 2 * pi, 100); % Parametro angolare precomputato
-    r =  45;
+    set(gcf, 'Position', [0, 100, 1400, 600]);
+
+    % Precompute the angular parameter for drawing circles
+    theta = linspace(0, 2 * pi, 100);
+
+    % Set the radius for the water source circle
+    r = 45;
     x_circle = r * cos(theta) + x_water;
     y_circle = r * sin(theta) + y_water;
     z_circle = ones(size(theta)) * 5;
@@ -20,8 +28,7 @@ function plotSimulation_function(states, states_est, centroids_est, numUAV, dimg
     
     surf(Xf, Yf, Zf, 'FaceColor', [0.4660 0.6740 0.1880], 'FaceAlpha', 0.9, 'EdgeColor', 'none');
 
-    contour3(Xf, Yf, Zf, 20, 'k');  % '20' = numero di livelli, 'k' = colore nero
-
+    contour3(Xf, Yf, Zf, 20, 'k');
     
     for i = 1:numUAV
 
@@ -33,11 +40,11 @@ function plotSimulation_function(states, states_est, centroids_est, numUAV, dimg
         
     end
 
-    % Plot dei fuochi
+    % Plot fires
     plot3(x_fire1, y_fire1, enviroment_surface(x_fire1, y_fire1, 1), 'x', 'Color', 'r', 'MarkerSize', curr_fire1_sig, 'LineWidth', 2);
     plot3(x_fire2, y_fire2, enviroment_surface(x_fire2, y_fire2, 1), 'x', 'Color', 'r', 'MarkerSize', sigma_fire2, 'LineWidth', 2);
 
-    % Plot dell'acqua
+    % Plot water
     plot3(x_circle, y_circle, z_circle, 'b', 'LineWidth', 2);
 
     hold off;
