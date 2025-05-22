@@ -14,25 +14,33 @@ function [areas, weigth_centroids, vel] = voronoi_function_FW_safeDist( ...
 
     % Distances with virtual points if too close
     all_distances = zeros(size(voronoi_grid,1), numUAV);
+    all_corrections = zeros(numUAV,2);
+    virtual_pos = zeros(numUAV,2);
+
     for i = 1:numUAV
         pi = states_est(i,1:2);
         for j = 1:numUAV
             pj = states_est(j,1:2);
             if i == j
-                all_distances(:, j) = vecnorm(voronoi_grid - pj, 2, 2);
+                % all_distances(:, j) = vecnorm(voronoi_grid - pj, 2, 2);
                 continue;
             end
             d = norm(pi - pj);
             if d < 2 * delta_safety
                 % Compute virtual point
                 correction = 2 * (delta_safety - d/2) * (pi - pj) / d;
-                pj_virtual = pj + correction;
-                all_distances(:, j) = vecnorm(voronoi_grid - pj_virtual, 2, 2);
+                all_corrections(j,:) = all_corrections(j,:) + correction;
+                % pj_virtual = pj + correction;
+                % all_distances(:, j) = vecnorm(voronoi_grid - pj_virtual, 2, 2);
             else
-                all_distances(:, j) = vecnorm(voronoi_grid - pj, 2, 2);
+                % all_distances(:, j) = vecnorm(voronoi_grid - pj, 2, 2);
             end
-        end
+        end  
     end
+
+    virtual_pos = states_est(:,1:2) + all_corrections;
+
+    all_distances = pdist2(voronoi_grid, virtual_pos);
 
     % Voronoi cell assignment
     [~, minimum_indices] = min(all_distances, [], 2);
