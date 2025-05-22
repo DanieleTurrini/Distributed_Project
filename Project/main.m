@@ -39,7 +39,7 @@ vel_lin_min = 50;                   % Minimum linear velocity [m/s]
 vel_lin_z_max = 100;                % Maximum linear velocity along z [m/s]
 vel_ang_max = 10;                   % Maximum angular velocity [rad/s]
 dim_UAV = 4;                        % Dimension of the UAV
-deltaSafety = 20;                   % Safety distance between UAVs [m]
+deltaSafety = 30;                   % Safety distance between UAVs [m]
 numUAV = 8;                         % Number of UAV
 totUAV = numUAV;                    % Initial Number of UAV
 Kp_z = 100;                         % Proportional gain for the linear velocity along z
@@ -164,11 +164,9 @@ end
 
 dimgrid = [500 500 500];                    % Define the dimensions of the Map
 
-if PLOT_ENVIRONMENT
+[Xf, Yf, Zf] = plot_environment_surface(dimgrid, PLOT_ENVIRONMENT);
 
-    [Xf, Yf, Zf] = plot_environment_surface(dimgrid);
 
-end
 
 %% Fires Parameters
 
@@ -438,7 +436,9 @@ if DO_SIMULATION
                                                                 % messages could arrive to the other UAVs with some delay 
                 invLastMeas1 = 1 ./ LastMeas1;
 
-                for j = 1:numUAV
+
+                %{
+                 for j = 1:numUAV
 
                     invSumLastMeas1(j) = sum(invLastMeas1(:,j));
 
@@ -448,7 +448,12 @@ if DO_SIMULATION
 
                     end
 
-                end
+                end 
+                %}
+                invSumLastMeas1 = sum(invLastMeas1, 1);
+                Qc1 = invLastMeas1 ./ invSumLastMeas1;
+                Qc1 = Qc1'; % Trasposta per mantenere la stessa logica di indicizzazione
+
 
                 meas_fire1(i) = 1;      % The measurement has been done
 
@@ -468,17 +473,20 @@ if DO_SIMULATION
                                                           % messages could arrive to the other UAVs with some delay 
                 invLastMeas2 = 1 ./ LastMeas2;
 
-                for j = 1:numUAV
 
+                %{
+                 for j = 1:numUAV
                     invSumLastMeas2(j) = sum(invLastMeas2(:,j));
-
                     for k = 1:numUAV
-
                         Qc2(j,k) = (invLastMeas2(k,j)) / ( invSumLastMeas2(j) );  % Update the matrix Q
-
                     end
+                end 
+                %}
 
-                end
+                invSumLastMeas2 = sum(invLastMeas2, 1);
+                Qc2 = invLastMeas2 ./ invSumLastMeas2;
+                Qc2 = Qc2';
+
 
                 meas_fire2(i) = 1;
 
@@ -836,12 +844,12 @@ if DO_SIMULATION
 
     % SIMULATION EVALUATION 
     
-    disp(sprintf('Mean drop time distance: %f ', mean(drop_times_diff(3:end))));
+    fprintf('Mean drop time distance: %f \n', mean(drop_times_diff(3:end)));
     totalDrops = numel(drop_times_diff) - 1;
-    disp(sprintf('Total Number of drops: %d', totalDrops));
+    fprintf('Total Number of drops: %d', totalDrops);
 
-    disp(sprintf('Number of drops on the Fire 1: %d', drops_f1));
-    disp(sprintf('Number of drops on the Fire 2: %d', drops_f2));
+    fprintf('Number of drops on the Fire 1: %d \n', drops_f1);
+    fprintf('Number of drops on the Fire 2: %d \n', drops_f2);
 
     if PLOT_TRAJECTORIES
 
