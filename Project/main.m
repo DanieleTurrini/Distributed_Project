@@ -41,7 +41,7 @@ vel_lin_min = 50;                   % Minimum linear velocity [m/s]
 vel_lin_z_max = 100;                % Maximum linear velocity along z [m/s]
 vel_ang_max = 10;                   % Maximum angular velocity [rad/s]
 dim_UAV = 4;                        % Dimension of the UAV
-deltaSafety = 15;                   % Safety distance between UAVs [m]
+deltaSafety = 30;                   % Safety distance between UAVs [m]
 numUAV = 8;                         % Number of UAV
 totUAV = numUAV;                    % Initial Number of UAV
 Kp_z = 100;                         % Proportional gain for the linear velocity along z
@@ -557,7 +557,7 @@ if DO_SIMULATION
         end
 
         if sum(objective) == 3 * numUAV
-                fpritf(' ALL FIRE ESTINGUISHED');
+                fprintf(' ALL FIRE ESTINGUISHED');
         end
 
         %% Consensus algorithm
