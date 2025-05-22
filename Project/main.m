@@ -11,12 +11,12 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;                                      % Time step
-T_sim = 16;                                     % Simulation time
+T_sim = 2;                                     % Simulation time
 scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
 DO_SIMULATION = true;
-UAV_FAIL = true;
+UAV_FAIL = false;
 
 PLOT_ENVIRONMENT = false;
 PLOT_DENSITY_FUNCTIONS = false;
@@ -55,7 +55,7 @@ freq_takeOff = 60;                  % Time distance between each takeoff
 n = 1;
 
 % Refill
-refill_time = 30;                   % Time needed to do the refill
+refill_time = 0;                   % Time needed to do the refill
 count_refill = zeros(numUAV,1);
 
 % Starting points
@@ -264,6 +264,9 @@ trajectories = zeros(numUAV, 4, tot_iter);
 
 % Estimated Trajectories
 trajectories_est = zeros(numUAV, 4, tot_iter);
+
+% Virtual Trajectories
+virtual_trajectories = zeros(numUAV, 2, tot_iter);
 
 % Estimation error 
 est_error = zeros(numUAV, 4, tot_iter);
@@ -592,9 +595,11 @@ if DO_SIMULATION
 
         % Compute Voronoi tessellation and velocities
         if SAFETY_VORONOI 
-            [areas, centroids_est, control_est] = voronoi_function_FW_safeDist(numUAV, dimgrid, states_est, Kp_z, Kp, Ka, ...
+            [areas, centroids_est, control_est, virtual_pos] = voronoi_function_FW_safeDist(numUAV, dimgrid, states_est, Kp_z, Kp, Ka, ...
                                                                   pos_est_fire1, pos_est_fire2, sigma_est_fire1, sigma_est_fire2, ...
                                                                   G_water, height_flight, scenario, objective, initialUAV_pos, deltaSafety);
+
+            virtual_trajectories(:,:,count) = virtual_pos;
 
         else
             [areas, centroids_est, control_est] = voronoi_function_FW(numUAV, dimgrid, states_est, Kp_z, Kp, Ka, ...
@@ -979,6 +984,7 @@ if ANIMATION
             % Draw the UAV pose
             drawUAV2D(trajectories(i, 1,t), trajectories(i, 2,t), trajectories(i, 4,t), dim_UAV, 'k');
             drawUAV2D(trajectories_est(i, 1,t), trajectories_est(i, 2,t), trajectories_est(i, 4,t), dim_UAV,'g', deltaSafety);  
+            plot(squeeze(virtual_trajectories(i, 1,t)), squeeze(virtual_trajectories(i, 2,t)),'MarkerSize',2,'r');  
     
             plot(bx,centroids_est_stor(i,1,t), centroids_est_stor(i,2,t), 'x', 'Color',[0.4660, 0.6740, 0.1880]);
 
