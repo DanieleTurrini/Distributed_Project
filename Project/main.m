@@ -11,7 +11,7 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;                                      % Time step
-T_sim = 30;                                     % Simulation time
+T_sim = 2;                                     % Simulation time
 scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
@@ -32,7 +32,7 @@ if ANIMATION == true
     DO_SIMULATION = true;
 end
 
-SAFETY_VORONOI = true; % If true, the Voronoi tessellation is computed with a safety distance
+SAFETY_VORONOI = true;              % If true, the Voronoi tessellation is computed considering a safety distance
 
 %% Vehicles Parameters 
 
@@ -456,9 +456,10 @@ if DO_SIMULATION
 
                 end 
                 %}
+
                 invSumLastMeas1 = sum(invLastMeas1, 1);
                 Qc1 = invLastMeas1 ./ invSumLastMeas1;
-                Qc1 = Qc1'; % Trasposta per mantenere la stessa logica di indicizzazione
+                Qc1 = Qc1';
 
 
                 meas_fire1(i) = 1;      % The measurement has been done
@@ -1031,7 +1032,7 @@ if ANIMATION
     % Blend texture and background
     blended_texture = (alpha * texture_resized + (1 - alpha) * green_background);
 
-    % ─── static terrain ───────────────────────────────
+    % static environment 
     surf(ax, Xf, Yf, Zf, 'CData', flip(blended_texture, 1), ...
         'FaceColor', 'texturemap', ...
         'EdgeColor', 'none', ...
@@ -1041,7 +1042,7 @@ if ANIMATION
 
     contour3(ax, Xf, Yf, Zf, 20, 'k');
     
-    % ─── static water circle ──────────────────────────
+    % Static water circle 
     theta = linspace(0,2*pi,100);
     r = sigma_water/2 + 20 ;
     x_circle = r*cos(theta)+x_water;

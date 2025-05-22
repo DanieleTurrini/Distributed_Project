@@ -2,14 +2,14 @@
 % calculates the area and weighted centroid of each UAV's region based on different objectives,
 % and determines the control velocities for each UAV.
 
-function [areas, weigth_centroids, vel] = voronoi_function_FW( numUAV, dimgrid, states, Kp_z, Kp, Ka, pos_est_fire1, pos_est_fire2, sigma_est_fire1, sigma_est_fire2, G_water,height_flight, scenario, objective, initialUAV_pos)
+function [areas, weigth_centroids, vel] = voronoi_function_FW( numUAV, dimgrid, states_est, Kp_z, Kp, Ka, pos_est_fire1, pos_est_fire2, sigma_est_fire1, sigma_est_fire2, G_water,height_flight, scenario, objective, initialUAV_pos)
 
     % Create a grid of points with dimensions specified by dimgrid
     [X, Y] = meshgrid(1:dimgrid(1), 1:dimgrid(2));
     voronoi_grid = [X(:), Y(:)];
 
     % Compute distances between initial points and each point on the grid
-    all_distances = pdist2(voronoi_grid, states(:,1:2));
+    all_distances = pdist2(voronoi_grid, states_est(:,1:2));
 
     % Find the index of the closest initial point for each point on the grid
     [~, minimum_indices] = min(all_distances, [], 2);
@@ -57,10 +57,10 @@ function [areas, weigth_centroids, vel] = voronoi_function_FW( numUAV, dimgrid, 
         weigth_centroids(i, :) = sum(region_points .* weights, 1) / masses(i);
         
         % Control velocity on the x-y plane
-        vel(i,:) = UAV_control(weigth_centroids(i, :),states(i, :), Kp, Ka);
+        vel(i,:) = UAV_control(weigth_centroids(i, :),states_est(i, :), Kp, Ka);
 
         % Control velocity on z
-        vel(i,2) = Kp_z * (flight_surface(states(i,1), states(i,2), height_flight, scenario) - states(i,3));
+        vel(i,2) = Kp_z * (flight_surface(states_est(i,1), states_est(i,2), height_flight, scenario) - states_est(i,3));
         
     end
     
