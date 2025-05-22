@@ -6,7 +6,7 @@ function drawUAV2D(X,Y,Theta,dim,col, deltaSafety)
 
     if nargin >= 6 && ~isempty(deltaSafety)
         phi = linspace(0, 2*pi, 100);
-        plot(X + deltaSafety*cos(phi), Y + deltaSafety*sin(phi), '--', 'Color', [0.5, 0.7, 0.2], 'LineWidth', 0.5);
+        plot(X + deltaSafety*cos(phi), Y + deltaSafety*sin(phi), '--', 'Color', [0.5, 0.7, 0.2], 'LineWidth', 0.25);
         hold on;
     end
     
