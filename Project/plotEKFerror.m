@@ -19,9 +19,9 @@ function plotEKFerror(numUAV, est_error)
         title(sprintf('X and Y errors of UAV %d', i)); % Title for the subplot
 
         hold on;
-        % Plot X error in red
+
         plot(squeeze(est_error(i,1,:)),'r');
-        % Plot Y error in blue
+        
         plot(squeeze(est_error(i,2,:)),'b');
 
         legend('Error in X', 'Error in Y'); % Add legend
@@ -33,7 +33,7 @@ function plotEKFerror(numUAV, est_error)
         xlabel('Time'); % Label for x-axis
         ylabel('Z Error'); % Label for y-axis
         hold on;
-        % Plot Z error in blue
+
         plot(squeeze(est_error(i,3,:)),'b');
 
         legend('Error in Z'); % Add legend
@@ -45,7 +45,7 @@ function plotEKFerror(numUAV, est_error)
         xlabel('Time'); % Label for x-axis
         ylabel('Theta Error'); % Label for y-axis
         hold on; 
-        % Plot Theta error in blue
+
         plot(squeeze(est_error(i,4,:)),'b');
 
         legend('Error in Theta'); % Add legend

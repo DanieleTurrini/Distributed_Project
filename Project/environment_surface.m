@@ -4,6 +4,7 @@
 %   modeled as a sum of Gaussian functions. For other scenarios, the height is set to zero.
 
 function height = environment_surface(x, y, scenario)
+
     % Define Gaussian function parameters
     if scenario == 1
         height = 200 * exp(-(((x - 300).^2) / (2 * 100^2) + ((y - 450).^2) / (2 * 100^2))) + ...

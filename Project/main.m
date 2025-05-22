@@ -19,11 +19,11 @@ DO_SIMULATION = true;
 UAV_FAIL = true;
 
 PLOT_ENVIRONMENT = true;
-PLOT_DENSITY_FUNCTIONS = false;
+PLOT_DENSITY_FUNCTIONS = true;
 PLOT_TRAJECTORIES = true;
 PLOT_COVARIANCE_TRACE = true;
-PLOT_CONSENSUS = false;
-PLOT_EKF_ERROR = false;
+PLOT_CONSENSUS = true;
+PLOT_EKF_ERROR = true;
 
 PLOT_ITERATIVE_SIMULATION = false;
 ANIMATION = true;
@@ -39,7 +39,7 @@ vel_lin_min = 50;                   % Minimum linear velocity [m/s]
 vel_lin_z_max = 100;                % Maximum linear velocity along z [m/s]
 vel_ang_max = 10;                   % Maximum angular velocity [rad/s]
 dim_UAV = 4;                        % Dimension of the UAV
-numUAV = 3;                         % Number of UAV
+numUAV = 7;                         % Number of UAV
 totUAV = numUAV;                    % Initial Number of UAV
 Kp_z = 100;                         % Proportional gain for the linear velocity along z
 Kp = 50;                            % Proportional gain for the linear velocity  
@@ -161,7 +161,7 @@ end
 
 %% Map Parameters
 
-dimgrid = [1000 1000 500];                    % Define the dimensions of the Map
+dimgrid = [500 500 500];                    % Define the dimensions of the Map
 
 if PLOT_ENVIRONMENT
 
@@ -970,6 +970,7 @@ if ANIMATION
 
 
     %% Plot 3D Simulation
+
     figure(60);
     set(gcf, 'Position', figure_size);
     ax = subplot(1,1,1);
@@ -989,7 +990,7 @@ if ANIMATION
     green_background = repmat(reshape([0.4660 0.6740 0.1880], 1, 1, 3), size(texture_resized, 1), size(texture_resized, 2));
 
     % Transparency factor (0 = only green background, 1 = only texture)
-    alpha = 0.2;  % <-- adjust this value
+    alpha = 0.2;  
 
     % Blend texture and background
     blended_texture = (alpha * texture_resized + (1 - alpha) * green_background);
@@ -1016,7 +1017,7 @@ if ANIMATION
     grid(ax,'on');
     xlabel(ax,'X'); ylabel(ax,'Y'); zlabel(ax,'Z');
     
-    % ——— define a simple airplane in its body‑frame ———
+    % simple airplane body‑frame
     fuselage = [  1;  0;  0 ];        % nose
     wingL    = [ 0;  0.5;  0 ];      % left wingtip
     wingR    = [ 0; -0.5;  0 ];      % right wingtip
@@ -1024,7 +1025,7 @@ if ANIMATION
     tailB    = [ -0.5; 0;  -0.2 ];    % tail bottom
     
     % vertices matrix
-    V = [ fuselage, wingL, wingR, tailT, tailB ]';   % 5×3
+    V = [ fuselage, wingL, wingR, tailT, tailB ]';  
     
     % faces list (triangles)
     F = [ ...
@@ -1066,7 +1067,7 @@ if ANIMATION
     for t = 1:count
         title(['3D Simulation - Iteration:', num2str(t),'/', num2str(tot_iter)]);
 
-        % ─── update each UAV’s position ──────────────────────
+        % Update each UAV’s position
         for i = 1:numUAV
     
             x = trajectories(i,1,t);
@@ -1088,7 +1089,7 @@ if ANIMATION
                 'ZData', [z0,   z] );
         end
     
-        % ─── update the “real” fire1 marker ────────────────────
+        % Update the “real” fire1 marker 
         if sigmaFir1StoreReal(1,t) > 0
             set(hFireReal1, ...
                 'XData', posFir1StoreReal(1,1,t), ...
@@ -1101,7 +1102,7 @@ if ANIMATION
             set(hFireReal1, 'XData', NaN, 'YData', NaN, 'ZData', NaN);
         end
     
-        % ─── update the “estimated” fire1 marker ───────────────
+        % Update the “estimated” fire1 marker
         if Fir1Store(i,3,t) > 0
             set(hFireEst1, ...
                 'XData', Fir1Store(i,1,t), ...
@@ -1114,7 +1115,7 @@ if ANIMATION
         else 
             set(hFireEst1, 'XData', NaN, 'YData', NaN, 'ZData', NaN);
         end
-        % ─── update the “real” fire2 marker ────────────────────
+        % Update the “real” fire2 marker
         if sigmaFir2StoreReal(1,t) > 0
             set(hFireReal2, ...
                 'XData', posFir2StoreReal(1,1,t), ...
@@ -1127,7 +1128,7 @@ if ANIMATION
         else 
             set(hFireReal2, 'XData', NaN, 'YData', NaN, 'ZData', NaN);    
         end
-        % ─── update the “estimated” fire2 marker ───────────────
+        % Update the “estimated” fire2 marker 
         if Fir2Store(i,3,t) > 0
             set(hFireEst2, ...
                 'XData', Fir2Store(i,1,t), ...

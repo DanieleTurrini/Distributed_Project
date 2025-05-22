@@ -3,6 +3,7 @@
 function plotUAVTrajectories_function(numUAV, trajectories, trajectories_est, Dimgrid,measurements)
 
     for i = 1:numUAV
+
         % Figure for trajectories
         figure(4 + i);
         
@@ -90,7 +91,5 @@ function plotUAVTrajectories_function(numUAV, trajectories, trajectories_est, Di
     xlim([0 Dimgrid(1)]); % Set x-axis limits based on grid dimensions
     ylim([0 Dimgrid(2)]); % Set y-axis limits based on grid dimensions
     grid on; % Enable grid
-
-
 
 end

@@ -36,13 +36,13 @@ function plotSimulation_function(states, states_est, centroids_est, numUAV, dimg
         drawUAV(states(i, 1), states(i, 2), states(i, 3), states(i, 4), dim_UAV,'k');
         
         % Plot estimated positions of fire
-        plot3(pos_est_fire1(i,1), pos_est_fire1(i,2), enviroment_surface(pos_est_fire1(i,1), pos_est_fire1(i,2), 1), 'x','MarkerSize', sigma_est_fire1(i,1));
+        plot3(pos_est_fire1(i,1), pos_est_fire1(i,2), environment_surface(pos_est_fire1(i,1), pos_est_fire1(i,2), 1), 'x','MarkerSize', sigma_est_fire1(i,1));
         
     end
 
     % Plot fires
-    plot3(x_fire1, y_fire1, enviroment_surface(x_fire1, y_fire1, 1), 'x', 'Color', 'r', 'MarkerSize', curr_fire1_sig, 'LineWidth', 2);
-    plot3(x_fire2, y_fire2, enviroment_surface(x_fire2, y_fire2, 1), 'x', 'Color', 'r', 'MarkerSize', sigma_fire2, 'LineWidth', 2);
+    plot3(x_fire1, y_fire1, environment_surface(x_fire1, y_fire1, 1), 'x', 'Color', 'r', 'MarkerSize', curr_fire1_sig, 'LineWidth', 2);
+    plot3(x_fire2, y_fire2, environment_surface(x_fire2, y_fire2, 1), 'x', 'Color', 'r', 'MarkerSize', sigma_fire2, 'LineWidth', 2);
 
     % Plot water
     plot3(x_circle, y_circle, z_circle, 'b', 'LineWidth', 2);

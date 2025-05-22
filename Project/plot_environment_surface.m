@@ -5,7 +5,7 @@
 %   such as fire locations, a water region, and contour lines for enhanced
 %   visualization. Returns the meshgrid coordinates X, Y, and the computed heights Z.
 
-function [X, Y, Z] = plot_environment_surface( dimgrid)
+function [X, Y, Z] = plot_environment_surface(dimgrid)
     % Define grid range
     x_range = linspace(0, dimgrid(1), 300); 
     y_range = linspace(0, dimgrid(2), 300);

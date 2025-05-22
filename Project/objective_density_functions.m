@@ -6,7 +6,8 @@ function [G_fires, G_water] = objective_density_functions(dimgrid,pos_fire1,pos_
 
     % Creation of the grid of points
     [x_m, y_m] = meshgrid(1:dimgrid(1), 1:dimgrid(2));
-    % Drone to plot
+
+    % UAV to plot
     i = 1;
 
     posFireMov1 = pos_fire1(t);
