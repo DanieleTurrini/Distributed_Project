@@ -32,6 +32,8 @@ if ANIMATION == true
     DO_SIMULATION = true;
 end
 
+SAFETY_VORONOI = true; % If true, the Voronoi tessellation is computed with a safety distance
+
 %% Vehicles Parameters 
 
 vel_lin_max = 100;                  % Maximum linear velocity [m/s]
@@ -89,7 +91,7 @@ fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
 %% UAV Fail paramters
 
 UAV_check_fail = false;             % Check if the UAV is failed
-fail_time = 9;                      % Time instant when one UAV fail
+fail_time = 10;                      % Time instant when one UAV fail
 
 if fail_time > T_sim
     UAV_FAIL = false;
@@ -337,32 +339,26 @@ if DO_SIMULATION
         LastMeas2 = LastMeas2 + 1;
 
         %% Check commumication
-
+        check = ones(numUAV, 1);
         % See if communication is present
+        fprintf(' --> Communication loss for: ')
         for k = 1:totUAV
-            fprinf(' --> Communication loss for: ')
+            
 
             if rand(1) < communication_prob && count > 1
-
                 check(k) = 0;       % NO communication
-                fprintf('UAV %d, ', k);
-
+                fprintf('UAV%d ', k);
             else
-
                 check(k) = 1;       % YES communication
-                fprintf('no UAV, ', k);
-
             end
 
             if UAV_FAIL && t >= fail_time + dt
 
                 check(ind) = 0;     % Impose no communication for the UAV crashed
-
             end
 
             if check_count(k) >= check_treshold      % If for some steps i did't recived any message, consider the UAV crashed
 
-                fprintf('   [Found a UAV crash]');
                 UAV_check_fail = true;
                 ind_est = k;
                 
@@ -390,6 +386,14 @@ if DO_SIMULATION
             end
     
         end 
+        if UAV_check_fail == true
+            % Print 5 spaces for each failed UAV (where check == 0)
+            num_failed = sum(check == 1);
+            if num_failed > 0
+                fprintf(repmat('     ', 1, num_failed));
+            end
+            fprintf('[Found a UAV crash]');
+        end
 
         % Real fire position and extension
 
@@ -586,16 +590,17 @@ if DO_SIMULATION
 
 
         % Compute Voronoi tessellation and velocities
-        [areas, centroids_est, control_est] = voronoi_function_FW_safeDist(numUAV, dimgrid, states_est, Kp_z, Kp, Ka, ...
+        if SAFETY_VORONOI 
+            [areas, centroids_est, control_est] = voronoi_function_FW_safeDist(numUAV, dimgrid, states_est, Kp_z, Kp, Ka, ...
                                                                   pos_est_fire1, pos_est_fire2, sigma_est_fire1, sigma_est_fire2, ...
                                                                   G_water, height_flight, scenario, objective, initialUAV_pos, deltaSafety);
 
-        %{
-         [areas, centroids_est, control_est] = voronoi_function_FW(numUAV, dimgrid, states_est, Kp_z, Kp, Ka, ...
+        else
+            [areas, centroids_est, control_est] = voronoi_function_FW(numUAV, dimgrid, states_est, Kp_z, Kp, Ka, ...
                                                         pos_est_fire1, pos_est_fire2, sigma_est_fire1, sigma_est_fire2, ...
                                                         G_water, height_flight, scenario, objective, initialUAV_pos);
-           
-        %}
+        end 
+        
                                                         
         
         % Impose a Boundaries on velocity
