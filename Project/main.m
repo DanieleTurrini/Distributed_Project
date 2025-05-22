@@ -11,7 +11,7 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;                                      % Time step
-T_sim = 2;                                     % Simulation time
+T_sim = 12;                                     % Simulation time
 scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
@@ -41,7 +41,7 @@ vel_lin_min = 50;                   % Minimum linear velocity [m/s]
 vel_lin_z_max = 100;                % Maximum linear velocity along z [m/s]
 vel_ang_max = 10;                   % Maximum angular velocity [rad/s]
 dim_UAV = 4;                        % Dimension of the UAV
-deltaSafety = 30;                   % Safety distance between UAVs [m]
+deltaSafety = 20;                   % Safety distance between UAVs [m]
 numUAV = 8;                         % Number of UAV
 totUAV = numUAV;                    % Initial Number of UAV
 Kp_z = 100;                         % Proportional gain for the linear velocity along z
@@ -55,7 +55,7 @@ freq_takeOff = 60;                  % Time distance between each takeoff
 n = 1;
 
 % Refill
-refill_time = 0;                   % Time needed to do the refill
+refill_time = 30;                   % Time needed to do the refill
 count_refill = zeros(numUAV,1);
 
 % Starting points
@@ -91,7 +91,7 @@ fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
 %% UAV Fail paramters
 
 UAV_check_fail = false;             % Check if the UAV is failed
-fail_time = 10;                      % Time instant when one UAV fail
+fail_time = 10;                     % Time instant when one UAV fail
 
 if fail_time > T_sim
     UAV_FAIL = false;
@@ -116,7 +116,7 @@ meas_freq_gyr = 1; % 100 Hz
 % Standard deviations
 std_gps = 3;                                                        % Standard deviation of the GPS
 std_ultrasonic = 1.5;                                               % Standard deviation of the ultrasonic sensor
-std_gyro = 1;                                                     % Standard deviation of the gyroscope
+std_gyro = 1;                                                       % Standard deviation of the gyroscope
 R = diag([std_gps^2, std_gps^2, std_ultrasonic^2, std_gyro^2]);     % Covariance of the measurement noise
 
 %% Kalman Filter Parameters
@@ -985,7 +985,7 @@ if ANIMATION
             drawUAV2D(trajectories(i, 1,t), trajectories(i, 2,t), trajectories(i, 4,t), dim_UAV, 'k');
             drawUAV2D(trajectories_est(i, 1,t), trajectories_est(i, 2,t), trajectories_est(i, 4,t), dim_UAV,'g', deltaSafety);
             if SAFETY_VORONOI
-                plot(bx, virtual_trajectories(i, 1, t), virtual_trajectories(i, 2, t), 'ro', 'MarkerSize', 2);
+                plot(bx, virtual_trajectories(i, 1, t), virtual_trajectories(i, 2, t), 'ro', 'MarkerSize', 4);
             end
             
             plot(bx,centroids_est_stor(i,1,t), centroids_est_stor(i,2,t), 'x', 'Color',[0.4660, 0.6740, 0.1880]);

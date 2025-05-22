@@ -49,8 +49,8 @@ function [areas, weigth_centroids, vel, virtual_pos] = voronoi_function_FW_safeD
 
             correction = 2 * (delta_safety - d/2) * (pi - pj) / d;
 
-            correction(1) = sign(correction(1)) .* min(abs(correction(1)), d/2 - 4);
-            correction(2) = sign(correction(2)) .* min(abs(correction(2)), d/2 - 4);
+            correction(1) = sign(correction(1)) .* min(abs(correction(1)), d/2 - 2.5);
+            correction(2) = sign(correction(2)) .* min(abs(correction(2)), d/2- 2.5);
 
             virtual_pos(j,:) = virtual_pos(j,:) + correction;
             
