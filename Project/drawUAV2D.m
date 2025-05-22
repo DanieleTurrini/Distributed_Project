@@ -2,7 +2,13 @@
 %   drawUAV2D(X, Y, Theta, dim, col) plots the UAV at position (X, Y) with
 %   orientation Theta, size dim, and color col.
 
-function drawUAV2D(X,Y,Theta,dim,col)
+function drawUAV2D(X,Y,Theta,dim,col, deltaSafety)
+
+    if nargin >= 6 && ~isempty(deltaSafety)
+        phi = linspace(0, 2*pi, 100);
+        plot(X + deltaSafety*cos(phi), Y + deltaSafety*sin(phi), 'g--', 'LineWidth', 1);
+        hold on;
+    end
     
     %Triangle-like unicycle
     s=dim;

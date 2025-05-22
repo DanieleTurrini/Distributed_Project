@@ -11,19 +11,19 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;                                      % Time step
-T_sim = 3;                                     % Simulation time
+T_sim = 15;                                     % Simulation time
 scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
 DO_SIMULATION = true;
 UAV_FAIL = true;
 
-PLOT_ENVIRONMENT = true;
-PLOT_DENSITY_FUNCTIONS = true;
-PLOT_TRAJECTORIES = true;
-PLOT_COVARIANCE_TRACE = true;
-PLOT_CONSENSUS = true;
-PLOT_EKF_ERROR = true;
+PLOT_ENVIRONMENT = false;
+PLOT_DENSITY_FUNCTIONS = false;
+PLOT_TRAJECTORIES = false;
+PLOT_COVARIANCE_TRACE = false;
+PLOT_CONSENSUS = false;
+PLOT_EKF_ERROR = false;
 
 PLOT_ITERATIVE_SIMULATION = false;
 ANIMATION = true;
@@ -39,7 +39,8 @@ vel_lin_min = 50;                   % Minimum linear velocity [m/s]
 vel_lin_z_max = 100;                % Maximum linear velocity along z [m/s]
 vel_ang_max = 10;                   % Maximum angular velocity [rad/s]
 dim_UAV = 4;                        % Dimension of the UAV
-numUAV = 7;                         % Number of UAV
+deltaSafety = 20;                   % Safety distance between UAVs [m]
+numUAV = 8;                         % Number of UAV
 totUAV = numUAV;                    % Initial Number of UAV
 Kp_z = 100;                         % Proportional gain for the linear velocity along z
 Kp = 50;                            % Proportional gain for the linear velocity  
@@ -94,7 +95,7 @@ if fail_time > T_sim
     UAV_FAIL = false;
 end
 
-ind = 1;                            % UAV that fails
+ind = 3;                            % UAV that fails
 ind_est = 0;                        % Initialization of ind_est
 check = ones(numUAV, 1);            % Variable that they periodically exchange 
 check_treshold = 10;                % If the check of that UAV is 1 for 10 times,
@@ -572,10 +573,17 @@ if DO_SIMULATION
 
 
         % Compute Voronoi tessellation and velocities
-        [areas, centroids_est, control_est] = voronoi_function_FW(numUAV, dimgrid, states_est, Kp_z, Kp, Ka, ...
+        [areas, centroids_est, control_est] = voronoi_function_FW_safeDist(numUAV, dimgrid, states_est, Kp_z, Kp, Ka, ...
                                                                   pos_est_fire1, pos_est_fire2, sigma_est_fire1, sigma_est_fire2, ...
-                                                                  G_water, height_flight, scenario, objective, initialUAV_pos);
-                                                                  
+                                                                  G_water, height_flight, scenario, objective, initialUAV_pos, deltaSafety);
+
+        %{
+         [areas, centroids_est, control_est] = voronoi_function_FW(numUAV, dimgrid, states_est, Kp_z, Kp, Ka, ...
+                                                        pos_est_fire1, pos_est_fire2, sigma_est_fire1, sigma_est_fire2, ...
+                                                        G_water, height_flight, scenario, objective, initialUAV_pos);
+           
+        %}
+                                                        
         
         % Impose a Boundaries on velocity
         % The linear straight velocty has also a minimum velocity since we are considering Fixed wing UAV 
@@ -940,8 +948,8 @@ if ANIMATION
         for i = 1:numUAV
 
             % Draw the UAV pose
-            drawUAV2D(trajectories(i, 1,t), trajectories(i, 2,t), trajectories(i, 4,t), dim_UAV,'k');
-            drawUAV2D(trajectories_est(i, 1,t), trajectories_est(i, 2,t), trajectories_est(i, 4,t), dim_UAV,'g');  
+            drawUAV2D(trajectories(i, 1,t), trajectories(i, 2,t), trajectories(i, 4,t), dim_UAV, 'k');
+            drawUAV2D(trajectories_est(i, 1,t), trajectories_est(i, 2,t), trajectories_est(i, 4,t), dim_UAV,'g', deltaSafety);  
     
             plot(bx,centroids_est_stor(i,1,t), centroids_est_stor(i,2,t), 'x', 'Color',[0.4660, 0.6740, 0.1880]);
 
@@ -1145,7 +1153,7 @@ if ANIMATION
         hold(ax,'off');
         drawnow; 
 
-        pause(0.025); % Pause to control the speed of the animation
+        pause(0.0025); % Pause to control the speed of the animation
         
     end
 
