@@ -11,7 +11,7 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;                                      % Time step
-T_sim = 12;                                     % Simulation time
+T_sim = 20;                                     % Simulation time
 scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
@@ -1007,7 +1007,13 @@ if ANIMATION
         vx_es = vx_Data{t};
         vy_es = vy_Data{t};
         plot(bx,vx_es, vy_es,'Color',[0.4660, 0.6740, 0.1880]);
-    
+
+        % Plot Voronoi edges virtual
+        if SAFETY_VORONOI
+            [vx_virtual, vy_virtual] = voronoi(virtual_trajectories(:,1,t), virtual_trajectories(:,2,t));
+            h_vor = plot(bx, vx_virtual, vy_virtual, 'Color', [1, 0, 0 0.2]); % Rosso flebile, trasparente
+            %set(h_vor, 'Color', [1, 0, 0, 0.2]); % RGBA, alpha=0.2
+        end    
         hold(bx,'off');
         drawnow; 
         
