@@ -11,7 +11,7 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;                                      % Time step
-T_sim = 15;                                     % Simulation time
+T_sim = 30;                                     % Simulation time
 scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
@@ -22,7 +22,7 @@ PLOT_ENVIRONMENT = false;
 PLOT_DENSITY_FUNCTIONS = false;
 PLOT_TRAJECTORIES = false;
 PLOT_COVARIANCE_TRACE = false;
-PLOT_CONSENSUS = false;
+PLOT_CONSENSUS = true;
 PLOT_EKF_ERROR = false;
 
 PLOT_ITERATIVE_SIMULATION = false;
@@ -39,7 +39,7 @@ vel_lin_min = 50;                   % Minimum linear velocity [m/s]
 vel_lin_z_max = 100;                % Maximum linear velocity along z [m/s]
 vel_ang_max = 10;                   % Maximum angular velocity [rad/s]
 dim_UAV = 4;                        % Dimension of the UAV
-deltaSafety = 30;                   % Safety distance between UAVs [m]
+deltaSafety = 15;                   % Safety distance between UAVs [m]
 numUAV = 8;                         % Number of UAV
 totUAV = numUAV;                    % Initial Number of UAV
 Kp_z = 100;                         % Proportional gain for the linear velocity along z
@@ -340,15 +340,17 @@ if DO_SIMULATION
 
         % See if communication is present
         for k = 1:totUAV
+            fprinf(' --> Communication loss for: ')
 
             if rand(1) < communication_prob && count > 1
 
                 check(k) = 0;       % NO communication
-                fprintf('No communication for UAV %d\n', k);
+                fprintf('UAV %d, ', k);
 
             else
 
                 check(k) = 1;       % YES communication
+                fprintf('no UAV, ', k);
 
             end
 
@@ -360,7 +362,7 @@ if DO_SIMULATION
 
             if check_count(k) >= check_treshold      % If for some steps i did't recived any message, consider the UAV crashed
 
-                disp('Found a UAV crash');
+                fprintf('   [Found a UAV crash]');
                 UAV_check_fail = true;
                 ind_est = k;
                 
@@ -541,13 +543,16 @@ if DO_SIMULATION
             % if all the fires are extinguished, the UAVs objective is = 3 
             if sigma_est_fire1(i,1) <= 0 && sigma_est_fire2(i,1) <= 0
 
-                disp('ALL FIRE ESTINGUISHED');
                 objective(i) = 3; % Change objective to 3 (all fires estinguished)
                 meas_fire1(i) = 0;
                 meas_fire2(i) = 0;
 
             end
 
+        end
+
+        if sum(objective) == 3 * numUAV
+                fpritf(' ALL FIRE ESTINGUISHED');
         end
 
         %% Consensus algorithm
@@ -838,13 +843,13 @@ if DO_SIMULATION
 
         end
 
-        fprintf('Iteration n: %d / %d\n', count, tot_iter);
+        fprintf('\nIteration n°: %d / %d ', count, tot_iter);
         
     end
 
     % SIMULATION EVALUATION 
     
-    fprintf('Mean drop time distance: %f \n', mean(drop_times_diff(3:end)));
+    fprintf('\nMean drop time distance: %f \n', mean(drop_times_diff(3:end)));
     totalDrops = numel(drop_times_diff) - 1;
     fprintf('Total Number of drops: %d', totalDrops);
 
@@ -911,7 +916,17 @@ if DO_SIMULATION
 
 end
 
+% if press enter start plotting the simulation animation
+inpAnim = input('Start the simulation animation? [y/n] : ','s');
+if inpAnim == 'y' || inpAnim == 'Y'
+    ANIMATION = true;
+else
+    ANIMATION = false;
+end
+
 if ANIMATION 
+
+
 
     if UAV_FAIL
 

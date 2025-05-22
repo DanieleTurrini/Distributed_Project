@@ -21,7 +21,7 @@ function [areas, weigth_centroids, vel] = voronoi_function_FW_safeDist( ...
             if d < 2 * delta_safety
                 % Compute virtual point
                 correction = 2 * (delta_safety - d/2) * (pi - pj) / d;
-                pj_virtual = pj + correction;
+                pj_virtual = pj - correction;
                 all_distances(:, j) = vecnorm(voronoi_grid - pj_virtual, 2, 2);
             else
                 all_distances(:, j) = vecnorm(voronoi_grid - pj, 2, 2);
