@@ -983,9 +983,11 @@ if ANIMATION
 
             % Draw the UAV pose
             drawUAV2D(trajectories(i, 1,t), trajectories(i, 2,t), trajectories(i, 4,t), dim_UAV, 'k');
-            drawUAV2D(trajectories_est(i, 1,t), trajectories_est(i, 2,t), trajectories_est(i, 4,t), dim_UAV,'g', deltaSafety);  
-            plot(bx, virtual_trajectories(i, 1, t), virtual_trajectories(i, 2, t), 'ro', 'MarkerSize', 2);
-
+            drawUAV2D(trajectories_est(i, 1,t), trajectories_est(i, 2,t), trajectories_est(i, 4,t), dim_UAV,'g', deltaSafety);
+            if SAFETY_VORONOI
+                plot(bx, virtual_trajectories(i, 1, t), virtual_trajectories(i, 2, t), 'ro', 'MarkerSize', 2);
+            end
+            
             plot(bx,centroids_est_stor(i,1,t), centroids_est_stor(i,2,t), 'x', 'Color',[0.4660, 0.6740, 0.1880]);
 
             if Fir1Store(i,3,t) > 0
