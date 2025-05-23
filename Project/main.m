@@ -40,9 +40,11 @@ vel_lin_max = 100;                  % Maximum linear velocity [m/s]
 vel_lin_min = 50;                   % Minimum linear velocity [m/s]
 vel_lin_z_max = 100;                % Maximum linear velocity along z [m/s]
 vel_ang_max = 10;                   % Maximum angular velocity [rad/s]
-dim_UAV = 8;                        % Dimension of the UAV
+dim_UAV = 4;                        % Dimension of the UAV
 deltaSafety = 40;                   % Safety distance between UAVs [m]
-numUAV = 4;                         % Number of UAV
+
+numUAV = 8;                         % Number of UAV
+
 totUAV = numUAV;                    % Initial Number of UAV
 Kp_z = 100;                         % Proportional gain for the linear velocity along z
 Kp = 50;                            % Proportional gain for the linear velocity  
@@ -51,7 +53,7 @@ height_flight = 30;                 % Height of flight from the ground
 
 % Take Off
 takeOff = true;
-freq_takeOff = 40;                  % Time distance between each takeoff 
+freq_takeOff = 50;                  % Time distance between each takeoff 
 n = 1;
 
 % Refill
@@ -91,7 +93,7 @@ fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
 %% UAV Fail paramters
 
 UAV_check_fail = false;             % Check if the UAV is failed
-fail_time = 2;                     % Time instant when one UAV fail
+fail_time = 15;                     % Time instant when one UAV fail
 
 if fail_time > T_sim
     UAV_FAIL = false;
