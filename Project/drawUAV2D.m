@@ -4,15 +4,15 @@
 
 function drawUAV2D(X,Y,Theta,dim,col, deltaSafety)
 
-    if nargin >= 6 && ~isempty(deltaSafety)
-        phi = linspace(0, 2*pi, 100);
-        h = plot(X + deltaSafety*cos(phi), Y + deltaSafety*sin(phi), '--', 'Color', [0.5, 0.7, 0.2], 'LineWidth', 0.25);
-        hold on;
-        % Imposta la trasparenza (alpha) della linea
-        if isprop(h, 'Color')
-            h.Color(4) = 0.3; % Valore alpha tra 0 (trasparente) e 1 (opaco)
-        end
-    end
+    % if nargin >= 6 && ~isempty(deltaSafety)
+    %     phi = linspace(0, 2*pi, 100);
+    %     h = plot(X + deltaSafety*cos(phi), Y + deltaSafety*sin(phi), '--', 'Color', [0.5, 0.7, 0.2], 'LineWidth', 0.25);
+    %     hold on;
+    %     % Imposta la trasparenza (alpha) della linea
+    %     if isprop(h, 'Color')
+    %         h.Color(4) = 0.3; % Valore alpha tra 0 (trasparente) e 1 (opaco)
+    %     end
+    % end
 
     %Triangle-like unicycle
     s=dim;
