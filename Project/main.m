@@ -11,19 +11,19 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;                                      % Time step
-T_sim = 14;                                     % Simulation time
+T_sim = 10;                                     % Simulation time
 scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
 DO_SIMULATION = true;
-UAV_FAIL = true;
+UAV_FAIL = false;
 
-PLOT_ENVIRONMENT = true;
-PLOT_DENSITY_FUNCTIONS = true;
-PLOT_TRAJECTORIES = true;
-PLOT_COVARIANCE_TRACE = true;
-PLOT_CONSENSUS = true;
-PLOT_EKF_ERROR = true;
+PLOT_ENVIRONMENT = false;
+PLOT_DENSITY_FUNCTIONS = false;
+PLOT_TRAJECTORIES = false;
+PLOT_COVARIANCE_TRACE = false;
+PLOT_CONSENSUS = false;
+PLOT_EKF_ERROR = false;
 
 PLOT_ITERATIVE_SIMULATION = false;
 ANIMATION = true;
@@ -267,7 +267,7 @@ trajectories_est = zeros(numUAV, 4, tot_iter);
 
 % Virtual Trajectories
 % virtual_trajectories = zeros(numUAV, 2, tot_iter);
-virtual_trajectories = zeros(numUAV*numUAV, 2, tot_iter);
+virtual_trajectories = zeros(numUAV, 2,numUAV, tot_iter);
 
 
 % Estimation error 
@@ -579,10 +579,18 @@ if DO_SIMULATION
             [areas, centroids_est, control_est, virtual_pos] = voronoi_distributed(numUAV, dimgrid, states_est, Kp_z, Kp, Ka, ...
                                                                   pos_est_fire1, pos_est_fire2, sigma_est_fire1, sigma_est_fire2, ...
                                                                   G_water, height_flight, scenario, objective, initialUAV_pos, deltaSafety);
-            for i = 1:numUAV
-                for j = 1:numUAV
-                    virtual_trajectories(i+numUAV-1,:,count) = virtual_pos(:,:,i);
+            
+            if UAV_FAIL && t >= fail_time + dt && UAV_check_fail
+                for k = 1:totUAV 
+                    
+                    for j = 1:totUAV
+    
+                        virtual_trajectories(j,:,k,count) = virtual_pos(j,:,k);
+    
+                    end
                 end
+            else
+                virtual_trajectories(:,:,:,count) = virtual_pos;
             end
 
         else
@@ -994,9 +1002,13 @@ if ANIMATION
                 if isprop(h, 'Color')
                     h.Color(4) = 0.3; % Valore alpha tra 0 (trasparente) e 1 (opaco)
                 end
-                for j = 1:numUAV
-                    plot(bx, virtual_trajectories(j+numUAV-1, 1, t), virtual_trajectories(j+numUAV-1, 2, t), 'ro', 'MarkerSize', 4);
-                end
+
+                traj = squeeze(virtual_trajectories(:,:,i,t));
+                plot(bx, traj(:,1), traj(:,2), 'o');
+
+                % for j = 1:numUAV
+                %     plot(bx, virtual_trajectories(j+numUAV-1, 1, t), virtual_trajectories(j+numUAV-1, 2, t), 'ro', 'MarkerSize', 4);
+                % end
             end
             
             plot(bx,centroids_est_stor(i,1,t), centroids_est_stor(i,2,t), 'x', 'Color',[0.4660, 0.6740, 0.1880]);
