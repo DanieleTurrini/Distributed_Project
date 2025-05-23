@@ -24,7 +24,7 @@ function height = flight_surface(x, y, h, scenario)
         Z(r <= flatWidth/2) = 1; 
 
         height = 200 * exp(-(((x - 300).^2) / (2 * 100^2) + ((y - 450).^2) / (2 * 100^2))) + ...
-                 80 * exp(-(((x - 250).^2) / (2 * 50^2) + ((y - 100).^2) / (2 * 150^2))) + h - h * Z;
+                 80 * exp(-(((x - 250).^2) / (2 * 50^2) + ((y - 100).^2) / (2 * 150^2))) + h - h * Z + 0.2;
     else
         height = 0; % Default case
     end
