@@ -11,12 +11,12 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;                                      % Time step
-T_sim = 10;                                     % Simulation time
+T_sim = 25;                                     % Simulation time
 scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
 DO_SIMULATION = true;
-UAV_FAIL = false;
+UAV_FAIL = true;
 
 PLOT_ENVIRONMENT = false;
 PLOT_DENSITY_FUNCTIONS = false;
@@ -40,9 +40,9 @@ vel_lin_max = 100;                  % Maximum linear velocity [m/s]
 vel_lin_min = 50;                   % Minimum linear velocity [m/s]
 vel_lin_z_max = 100;                % Maximum linear velocity along z [m/s]
 vel_ang_max = 10;                   % Maximum angular velocity [rad/s]
-dim_UAV = 4;                        % Dimension of the UAV
+dim_UAV = 8;                        % Dimension of the UAV
 deltaSafety = 40;                   % Safety distance between UAVs [m]
-numUAV = 3;                         % Number of UAV
+numUAV = 4;                         % Number of UAV
 totUAV = numUAV;                    % Initial Number of UAV
 Kp_z = 100;                         % Proportional gain for the linear velocity along z
 Kp = 50;                            % Proportional gain for the linear velocity  
@@ -91,7 +91,7 @@ fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
 %% UAV Fail paramters
 
 UAV_check_fail = false;             % Check if the UAV is failed
-fail_time = 12;                     % Time instant when one UAV fail
+fail_time = 2;                     % Time instant when one UAV fail
 
 if fail_time > T_sim
     UAV_FAIL = false;
@@ -350,7 +350,9 @@ if DO_SIMULATION
         %% Check commumication
         check = ones(numUAV, 1);
         % See if communication is present
-        fprintf(' --> Communication loss for: ')
+        if t > 1
+            fprintf(' --> Communication loss for: ')
+        end    
         for k = 1:totUAV
             
 
@@ -581,12 +583,20 @@ if DO_SIMULATION
                                                                   G_water, height_flight, scenario, objective, initialUAV_pos, deltaSafety);
             
             if UAV_FAIL && t >= fail_time + dt && UAV_check_fail
-                for k = 1:totUAV 
-                    
-                    for j = 1:totUAV
-    
-                        virtual_trajectories(j,:,k,count) = virtual_pos(j,:,k);
-    
+                % When a UAV fails, skip its index in virtual_trajectories
+                for k = 1:numUAV+1
+                    if k < ind
+                        for j = 1:numUAV
+                            virtual_trajectories(j,:,k,count) = virtual_pos(j,:,k);
+                        end
+                    elseif k == ind
+                        for j = 1:numUAV
+                            virtual_trajectories(j,:,k,count) = NaN; % Mark failed UAV's trajectory as NaN
+                        end
+                    elseif k > ind
+                        for j = 1:numUAV
+                            virtual_trajectories(j,:,k,count) = virtual_pos(j,:,k-1);
+                        end
                     end
                 end
             else
@@ -780,6 +790,21 @@ if DO_SIMULATION
                     Fir2Store(k,3,count) = sigma_est_fire2(k,1);
 
                     P_trace(k,count) = trace(P(:,:,k));
+
+                    % Save virtual trajectories for failed UAV case
+                    if SAFETY_VORONOI
+                        for j = 1:numUAV+1
+                            if j < ind
+                                virtual_trajectories(k,:,j,count) = virtual_pos(k,:,j);
+                            elseif j == ind
+                                virtual_trajectories(k,:,j,count) = NaN;
+                            elseif j > ind
+                                virtual_trajectories(k,:,j,count) = virtual_pos(k,:,j-1);
+                            end
+                        end
+                    end
+
+
                     
 
                 elseif k == ind
@@ -804,6 +829,19 @@ if DO_SIMULATION
                     P_trace(k,count) = 0;
                     P_trace(k+1,count) = trace(P(:,:,k));
 
+                    % Save virtual trajectories for failed UAV case
+                    if SAFETY_VORONOI
+                        for j = 1:numUAV+1
+                            if j < ind
+                                virtual_trajectories(k,:,j,count) = virtual_pos(k,:,j);
+                            elseif j == ind
+                                virtual_trajectories(k,:,j,count) = NaN;
+                            elseif j > ind
+                                virtual_trajectories(k,:,j,count) = virtual_pos(k,:,j-1);
+                            end
+                        end
+                    end
+
                 elseif k > ind
 
                     measurements(k, :, count) = measure(k-1,:); 
@@ -824,6 +862,19 @@ if DO_SIMULATION
                     Fir2Store(k,3,count) = sigma_est_fire2(k-1,1);
 
                     P_trace(k+1,count) = trace(P(:,:,k));
+
+                    % Save virtual trajectories for failed UAV case
+                    if SAFETY_VORONOI
+                        for j = 1:numUAV+1
+                            if j < ind
+                                virtual_trajectories(k,:,j,count) = virtual_pos(k-1,:,j);
+                            elseif j == ind
+                                virtual_trajectories(k,:,j,count) = NaN;
+                            elseif j > ind
+                                virtual_trajectories(k,:,j,count) = virtual_pos(k-1,:,j-1);
+                            end
+                        end
+                    end
 
                 end
 
