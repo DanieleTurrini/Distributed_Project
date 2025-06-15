@@ -24,8 +24,9 @@ A MATLAB‑based simulation and control framework for a swarm of fixed‑wing UA
 
 ## Run the code
 Open MATLAB and navigate to the project folder, then:
-
+'''ruby
 run main.m
+'''
 
 This will launch a simulation with 8 UAVs, two moving fire fronts, and one refill depots.
 All the important parameters can be changed inside this file.
