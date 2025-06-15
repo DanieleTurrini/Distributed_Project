@@ -28,7 +28,12 @@ Open MATLAB and navigate to the project folder, then:
 run main.m
 ```
 
-This will launch a simulation with 8 UAVs, two moving fire fronts, and one refill depots.
-All the important parameters can be changed inside this file.
+This will launch a simulation with 8 UAVs, two moving fire fronts, and one refill depots.\
+Inside this file there are all the important changeble parameters and their descriptions.
+
+## Detailed description
+A detailed description of the work done is written in the following report:
+
+
 
 
