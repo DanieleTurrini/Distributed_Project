@@ -32,7 +32,7 @@ This will launch a simulation with 8 UAVs, two moving fire fronts, and one refil
 Inside this file there are all the important changeble parameters and their descriptions.
 
 ## Detailed description
-A detailed description of the work done is written in the following report:
+A detailed description of the work done and all the results are described in this report: [Download the report](Distributed_System_Report.pdf)
 
 
 
