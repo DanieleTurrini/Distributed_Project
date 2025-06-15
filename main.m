@@ -11,19 +11,19 @@ clc;
 %% Simulation Parameters 
 
 dt = 0.01;                                      % Time step
-T_sim = 10;                                     % Simulation time
+T_sim = 15;                                     % Simulation time
 scenario = 1;                                   % Environment choosen
 tot_iter = round((T_sim - 1)/dt + 1);           % Total number of iterations
 
 DO_SIMULATION = true;
-UAV_FAIL = false;
+UAV_FAIL = true;
 
-PLOT_ENVIRONMENT = false;
-PLOT_DENSITY_FUNCTIONS = false;
-PLOT_TRAJECTORIES = false;
-PLOT_COVARIANCE_TRACE = false;
-PLOT_CONSENSUS = false;
-PLOT_EKF_ERROR = false;
+PLOT_ENVIRONMENT = true;
+PLOT_DENSITY_FUNCTIONS = true;
+PLOT_TRAJECTORIES = true;
+PLOT_COVARIANCE_TRACE = true;
+PLOT_CONSENSUS = true;
+PLOT_EKF_ERROR = true;
 
 PLOT_ITERATIVE_SIMULATION = false;
 ANIMATION = true;
@@ -41,8 +41,10 @@ vel_lin_min = 50;                   % Minimum linear velocity [m/s]
 vel_lin_z_max = 100;                % Maximum linear velocity along z [m/s]
 vel_ang_max = 10;                   % Maximum angular velocity [rad/s]
 dim_UAV = 4;                        % Dimension of the UAV
-deltaSafety = 40;                   % Safety distance between UAVs [m]
-numUAV = 3;                         % Number of UAV
+deltaSafety = 25;                   % Safety distance between UAVs [m]
+
+numUAV = 6;                         % Number of UAV
+
 totUAV = numUAV;                    % Initial Number of UAV
 Kp_z = 100;                         % Proportional gain for the linear velocity along z
 Kp = 50;                            % Proportional gain for the linear velocity  
@@ -51,7 +53,7 @@ height_flight = 30;                 % Height of flight from the ground
 
 % Take Off
 takeOff = true;
-freq_takeOff = 40;                  % Time distance between each takeoff 
+freq_takeOff = 60;                  % Time distance between each takeoff 
 n = 1;
 
 % Refill
@@ -91,7 +93,7 @@ fun = @(state, u, deltat) [state(1) + u(1) * cos(state(4)) * deltat, ...
 %% UAV Fail paramters
 
 UAV_check_fail = false;             % Check if the UAV is failed
-fail_time = 12;                     % Time instant when one UAV fail
+fail_time = 5;                     % Time instant when one UAV fail
 
 if fail_time > T_sim
     UAV_FAIL = false;
@@ -169,7 +171,6 @@ dimgrid = [500 500 500];                    % Define the dimensions of the Map
 [Xf, Yf, Zf] = plot_environment_surface(dimgrid, PLOT_ENVIRONMENT);
 
 
-
 %% Fires Parameters
 
 drop_dist = 0.6;         % Percentage of the distance from the center of 
@@ -219,7 +220,7 @@ for i = 1:numUAV
 end
 
 % Decreasing factor of the fire
-deacreasingFire_factor = 5;                 % Decreasing factor of the fire extension
+deacreasingFire_factor = 4;                 % Decreasing factor of the fire extension
                                             % (we assume that the fire decrease every time the UAV drop the water)
                         
 %% Water Parameters
@@ -266,9 +267,7 @@ trajectories = zeros(numUAV, 4, tot_iter);
 trajectories_est = zeros(numUAV, 4, tot_iter);
 
 % Virtual Trajectories
-% virtual_trajectories = zeros(numUAV, 2, tot_iter);
 virtual_trajectories = zeros(numUAV, 2,numUAV, tot_iter);
-
 
 % Estimation error 
 est_error = zeros(numUAV, 4, tot_iter);
@@ -350,7 +349,9 @@ if DO_SIMULATION
         %% Check commumication
         check = ones(numUAV, 1);
         % See if communication is present
-        fprintf(' --> Communication loss for: ')
+        if t > 1
+            fprintf(' --> Communication loss for: ')
+        end    
         for k = 1:totUAV
             
 
@@ -580,12 +581,26 @@ if DO_SIMULATION
                                                                   pos_est_fire1, pos_est_fire2, sigma_est_fire1, sigma_est_fire2, ...
                                                                   G_water, height_flight, scenario, objective, initialUAV_pos, deltaSafety);
             
-            for k = 1:totUAV 
-                for j = 1:totUAV
+            if UAV_FAIL && t >= fail_time + dt && UAV_check_fail
+                % When a UAV fails, skip its index in virtual_trajectories
+                for k = 1:totUAV
+                    if k < ind
+                        for j = 1:numUAV
+                            virtual_trajectories(j,:,k,count) = virtual_pos(j,:,k);
+                        end
+                    elseif k == ind
+                        for j = 1:numUAV
+                            virtual_trajectories(j,:,k,count) = NaN; % Mark failed UAV's trajectory as NaN
+                        end
+                    elseif k > ind
+                        for j = 1:numUAV
+                            virtual_trajectories(j,:,k,count) = virtual_pos(j,:,k-1);
+                        end
+                    end
                 end
-
+            else
+                virtual_trajectories(:,:,:,count) = virtual_pos;
             end
-            %virtual_trajectories(:,:,:,count) = virtual_pos;
 
         else
             [areas, centroids_est, control_est] = voronoi_function_FW(numUAV, dimgrid, states_est, Kp_z, Kp, Ka, ...
@@ -713,12 +728,6 @@ if DO_SIMULATION
         vx_Data{count} = vx;
         vy_Data{count} = vy;
 
-        % if SAFETY_VORONOI
-        %     [vx_virtual, vy_virtual] = voronoi(virtual_pos(:,1), virtual_pos(:,2));
-        %     vx_virt_Data{count} = vx_virtual;
-        %     vy_virt_Data{count} = vy_virtual;
-        % end
-
 
         %% UAV fail 
 
@@ -760,9 +769,6 @@ if DO_SIMULATION
                     est_error(k,:,count) = abs(states_est(k,:) - states(k,:));
                     trajectories(k,:,count) = states(k,:);
                     trajectories_est(k,:,count) = states_est(k,:);
-                    % if SAFETY_VORONOI
-                    %     virtual_trajectories(k,:,count) = virtual_pos(k,:);
-                    % end
                     centroids_est_stor(k,:,count) = centroids_est(k,:);
 
                     Fir1Store(k,1,count) = pos_est_fire1(k,1);
@@ -774,6 +780,21 @@ if DO_SIMULATION
                     Fir2Store(k,3,count) = sigma_est_fire2(k,1);
 
                     P_trace(k,count) = trace(P(:,:,k));
+
+                    % Save virtual trajectories for failed UAV case
+                    if SAFETY_VORONOI
+                        for j = 1:numUAV+1
+                            if j < ind
+                                virtual_trajectories(k,:,j,count) = virtual_pos(k,:,j);
+                            elseif j == ind
+                                virtual_trajectories(k,:,j,count) = NaN;
+                            elseif j > ind
+                                virtual_trajectories(k,:,j,count) = virtual_pos(k,:,j-1);
+                            end
+                        end
+                    end
+
+
                     
 
                 elseif k == ind
@@ -782,9 +803,6 @@ if DO_SIMULATION
                     est_error(k,:,count) = 0;
                     trajectories(k,:,count) = trajectories(k,:,count-1);
                     trajectories_est(k,:,count) = trajectories_est(k,:,count-1);
-                    % if SAFETY_VORONOI
-                    %     virtual_trajectories(k,:,count) = virtual_trajectories(k,:,count-1);
-                    % end
                     centroids_est_stor(k,:,count) = centroids_est_stor(k,:,count-1);
                     
                     trajectories(k,3,count) = environment_surface(trajectories(k,1,count), ...
@@ -798,15 +816,25 @@ if DO_SIMULATION
                     P_trace(k,count) = 0;
                     P_trace(k+1,count) = trace(P(:,:,k));
 
+                    % Save virtual trajectories for failed UAV case
+                    if SAFETY_VORONOI
+                        for j = 1:numUAV+1
+                            if j < ind
+                                virtual_trajectories(k,:,j,count) = virtual_pos(k,:,j);
+                            elseif j == ind
+                                virtual_trajectories(k,:,j,count) = NaN;
+                            elseif j > ind
+                                virtual_trajectories(k,:,j,count) = virtual_pos(k,:,j-1);
+                            end
+                        end
+                    end
+
                 elseif k > ind
 
                     measurements(k, :, count) = measure(k-1,:); 
                     est_error(k,:,count) = abs(states_est(k-1,:) - states(k-1,:));
                     trajectories(k,:,count) = states(k-1,:);
                     trajectories_est(k,:,count) = states_est(k-1,:);
-                    % if SAFETY_VORONOI
-                    %     virtual_trajectories(k,:,count) = virtual_pos(k-1,:);
-                    % end
                     centroids_est_stor(k,:,count) = centroids_est(k-1,:);
 
                     Fir1Store(k,1,count) = pos_est_fire1(k-1,1);
@@ -819,6 +847,19 @@ if DO_SIMULATION
 
                     P_trace(k+1,count) = trace(P(:,:,k));
 
+                    % Save virtual trajectories for failed UAV case
+                    if SAFETY_VORONOI
+                        for j = 1:numUAV+1
+                            if j < ind
+                                virtual_trajectories(k,:,j,count) = virtual_pos(k-1,:,j);
+                            elseif j == ind
+                                virtual_trajectories(k,:,j,count) = NaN;
+                            elseif j > ind
+                                virtual_trajectories(k,:,j,count) = virtual_pos(k-1,:,j-1);
+                            end
+                        end
+                    end
+
                 end
 
             else
@@ -827,9 +868,6 @@ if DO_SIMULATION
                 est_error(k,:,count) = abs(states_est(k,:) - states(k,:));
                 trajectories(k,:,count) = states(k,:);
                 trajectories_est(k,:,count) = states_est(k,:);
-                % if SAFETY_VORONOI
-                %     virtual_trajectories(k,:,count) = virtual_pos(k,:);
-                % end
                 centroids_est_stor(k,:,count) = centroids_est(k,:);
 
                 Fir1Store(k,1,count) = pos_est_fire1(k,1);
@@ -1000,9 +1038,6 @@ if ANIMATION
                 traj = squeeze(virtual_trajectories(:,:,i,t));
                 plot(bx, traj(:,1), traj(:,2), 'o');
 
-                % for j = 1:numUAV
-                %     plot(bx, virtual_trajectories(j+numUAV-1, 1, t), virtual_trajectories(j+numUAV-1, 2, t), 'ro', 'MarkerSize', 4);
-                % end
             end
             
             plot(bx,centroids_est_stor(i,1,t), centroids_est_stor(i,2,t), 'x', 'Color',[0.4660, 0.6740, 0.1880]);
@@ -1029,7 +1064,7 @@ if ANIMATION
         if SAFETY_VORONOI
             
             h_vor = plot(bx, vx_virt_Data{t}, vy_virt_Data{t}, 'Color', [1, 0, 0 0.2]); % Rosso flebile, trasparente
-            %set(h_vor, 'Color', [1, 0, 0, 0.2]); % RGBA, alpha=0.2
+
         end    
         hold(bx,'off');
         drawnow; 

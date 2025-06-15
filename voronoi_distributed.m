@@ -28,37 +28,6 @@ function [areas, weigth_centroids, vel, virtual_pos] = voronoi_distributed( ...
    
     for i = 1:numUAV
         pi = states_est(i,1:2);
-        % for j = 1:numUAV
-        %     pj = states_est(j,1:2);
-        %     if i == j
-        %         all_distances(:, j) = vecnorm(voronoi_grid - pj, 2, 2);
-        %         if i == 1
-        %             virtual_pos(j,:) = pj;
-        %         end
-        %         continue;
-        %     end
-        %     d = norm(pi - pj);
-        %     if d < 2 * delta_safety
-        %         % Compute virtual point
-        %         correction = 2 * (delta_safety - d/2) * (pi - pj) / d;
-        % 
-        %         correction(1) = sign(correction(1)) .* min(abs(correction(1)), d/2 );
-        %         correction(2) = sign(correction(2)) .* min(abs(correction(2)), d/2 );
-        % 
-        %         pj_virtual = pj + correction;
-        %         all_distances(:, j) = vecnorm(voronoi_grid - pj_virtual, 2, 2);
-        %         if i == 1
-        %             virtual_pos(j,:) = pj_virtual;
-        %         end
-        % 
-        %     else
-        %         all_distances(:, j) = vecnorm(voronoi_grid - pj, 2, 2);
-        %         if i == 1
-        %             virtual_pos(j,:) = pj;
-        %         end
-        %     end
-        % end
-
         for j = 1:numUAV
             pj = states_est(j,1:2);
             if i == j
